@@ -2301,6 +2301,9 @@ export default function App() {
               <div className="w-4 h-[1px] bg-white/10" />
             </div>
           </div>
+          <div className="pt-6 text-center">
+            <a href="https://lavoiedigital.ca" target="_blank" rel="noopener noreferrer" className="text-[8px] uppercase tracking-[0.3em] font-light text-stone-700 hover:text-[#C5A059] transition-colors">Création de Lavoie Digital</a>
+          </div>
         </div>
       </footer>
     </div>

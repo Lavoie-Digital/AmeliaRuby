@@ -54,10 +54,13 @@ export default function SuccessPage() {
       </div>
 
       {/* FOOTER MINIMAL */}
-      <footer className="py-8 text-center border-t border-stone-100">
+      <footer className="py-8 text-center border-t border-stone-100 space-y-3">
         <p className="text-[9px] uppercase tracking-[0.3em] font-light text-stone-400">
           © 2024 — Maison Amélia Ruby • Atelier Bordeaux
         </p>
+        <a href="https://lavoiedigital.ca" target="_blank" rel="noopener noreferrer" className="inline-block text-[9px] uppercase tracking-[0.3em] font-light text-stone-400 hover:text-stone-600 transition-colors">
+          Création de Lavoie Digital
+        </a>
       </footer>
 
     </div>
