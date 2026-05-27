@@ -44,6 +44,9 @@ export async function POST(request: Request) {
       line_items: line_items,
       mode: 'payment',
 
+      // Interface Stripe Checkout en français
+      locale: 'fr',
+
       // Permet à la cliente d'utiliser des codes promo créés dans l'admin
       allow_promotion_codes: true,
       
