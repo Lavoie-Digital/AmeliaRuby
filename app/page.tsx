@@ -12,8 +12,7 @@ import {
 // --- FIREBASE SETUP ---
 import { initializeApp } from 'firebase/app';
 import {
-  getFirestore, collection, addDoc, onSnapshot, doc,
-  updateDoc, deleteDoc, query, orderBy
+  getFirestore, collection, onSnapshot
 } from 'firebase/firestore';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 
@@ -157,10 +156,20 @@ const inspirations = [
 export default function App() {
   // États Globaux
   const [view, setView] = useState<'shop' | 'admin'>('shop');
-  const [adminTab, setAdminTab] = useState<'inventory' | 'clients'>('inventory');
+  const [adminTab, setAdminTab] = useState<'inventory' | 'clients' | 'promos'>('inventory');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
+  const [adminSessionPassword, setAdminSessionPassword] = useState('');
+  const [adminLoginError, setAdminLoginError] = useState('');
+  const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Codes promo
+  const [promoCodes, setPromoCodes] = useState<any[]>([]);
+  const [isLoadingPromos, setIsLoadingPromos] = useState(false);
+  const [newPromo, setNewPromo] = useState({ code: '', percentOff: '', maxRedemptions: '', expiresAt: '' });
+  const [promoFormError, setPromoFormError] = useState('');
+  const [isCreatingPromo, setIsCreatingPromo] = useState(false);
   
   const [user, setUser] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -282,11 +291,10 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 3. FETCH DATA (INVENTAIRE & CLIENTS)
+  // 3. FETCH DATA INVENTAIRE (lecture publique en temps réel)
   useEffect(() => {
     if (!user) return;
-    
-    // Inventaire
+
     const qInv = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
     const unsubInv = onSnapshot(qInv, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -297,21 +305,29 @@ export default function App() {
       setIsLoading(false);
     });
 
-    // Clients (collection racine, écrite par le webhook Stripe)
-    const qClients = collection(db, 'clients');
-    const unsubClients = onSnapshot(qClients, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setClients(data);
-    }, (err) => console.warn("Clients:", err));
-
-    // Historique des suivis expédiés
-    const qTrackings = collection(db, 'artifacts', appId, 'public', 'data', 'trackings');
-    const unsubTrackings = onSnapshot(qTrackings, (snapshot) => {
-      setTrackings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (err) => console.error(err));
-
-    return () => { unsubInv(); unsubClients(); unsubTrackings(); };
+    return () => { unsubInv(); };
   }, [user]);
+
+  // Charger les codes promo quand l'onglet est ouvert
+  useEffect(() => {
+    if (view === 'admin' && isAdminAuthenticated && adminTab === 'promos') {
+      fetchPromoCodes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, isAdminAuthenticated, adminTab]);
+
+  // Charger commandes + trackings quand l'admin se connecte (et rafraîchir périodiquement)
+  useEffect(() => {
+    if (!(view === 'admin' && isAdminAuthenticated)) return;
+    fetchClients();
+    fetchTrackings();
+    const interval = setInterval(() => {
+      fetchClients();
+      fetchTrackings();
+    }, 30000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, isAdminAuthenticated]);
 
   // 4. MONTAGE DU CHECKOUT
   useEffect(() => {
@@ -457,7 +473,142 @@ export default function App() {
   const logoutAdmin = () => {
     setIsAdminAuthenticated(false);
     setAdminPassword('');
+    setAdminSessionPassword('');
+    setPromoCodes([]);
     setView('shop');
+  };
+
+  // --- LOGIQUE COMMANDES & SUIVI (lecture serveur, données privées) ---
+  const fetchClients = async () => {
+    if (!adminSessionPassword) return;
+    try {
+      const res = await fetch('/api/admin/clients', {
+        headers: { 'x-admin-password': adminSessionPassword },
+      });
+      if (res.ok) {
+        setClients(await res.json());
+      } else if (res.status === 401) {
+        logoutAdmin();
+      }
+    } catch (err) {
+      console.error('Erreur chargement commandes:', err);
+    }
+  };
+
+  const fetchTrackings = async () => {
+    if (!adminSessionPassword) return;
+    try {
+      const res = await fetch('/api/admin/trackings', {
+        headers: { 'x-admin-password': adminSessionPassword },
+      });
+      if (res.ok) {
+        setTrackings(await res.json());
+      } else if (res.status === 401) {
+        logoutAdmin();
+      }
+    } catch (err) {
+      console.error('Erreur chargement trackings:', err);
+    }
+  };
+
+  // --- LOGIQUE CODES PROMO ---
+  const fetchPromoCodes = async () => {
+    if (!adminSessionPassword) return;
+    setIsLoadingPromos(true);
+    try {
+      const res = await fetch('/api/admin/promo-codes', {
+        headers: { 'x-admin-password': adminSessionPassword },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPromoCodes(data);
+      } else if (res.status === 401) {
+        logoutAdmin();
+      }
+    } catch (err) {
+      console.error('Erreur chargement codes promo:', err);
+    } finally {
+      setIsLoadingPromos(false);
+    }
+  };
+
+  const createPromoCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPromoFormError('');
+
+    const code = newPromo.code.trim().toUpperCase();
+    const percentOff = Number(newPromo.percentOff);
+
+    if (!code || code.length < 3) {
+      setPromoFormError('Le code doit contenir au moins 3 caractères.');
+      return;
+    }
+    if (!Number.isFinite(percentOff) || percentOff <= 0 || percentOff > 100) {
+      setPromoFormError('Le pourcentage doit être entre 1 et 100.');
+      return;
+    }
+
+    const payload: any = { code, percentOff };
+    if (newPromo.maxRedemptions) {
+      const m = Number(newPromo.maxRedemptions);
+      if (Number.isFinite(m) && m > 0) payload.maxRedemptions = Math.floor(m);
+    }
+    if (newPromo.expiresAt) {
+      const ts = Math.floor(new Date(newPromo.expiresAt).getTime() / 1000);
+      if (ts > Math.floor(Date.now() / 1000)) payload.expiresAt = ts;
+    }
+
+    setIsCreatingPromo(true);
+    try {
+      const res = await fetch('/api/admin/promo-codes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': adminSessionPassword,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        setNewPromo({ code: '', percentOff: '', maxRedemptions: '', expiresAt: '' });
+        await fetchPromoCodes();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setPromoFormError(data.error || 'Erreur lors de la création du code.');
+      }
+    } catch {
+      setPromoFormError('Erreur de connexion. Réessayez.');
+    } finally {
+      setIsCreatingPromo(false);
+    }
+  };
+
+  const togglePromoCode = async (id: string, active: boolean) => {
+    try {
+      const res = await fetch(`/api/admin/promo-codes/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': adminSessionPassword,
+        },
+        body: JSON.stringify({ active }),
+      });
+      if (res.ok) await fetchPromoCodes();
+    } catch (err) {
+      console.error('Erreur mise à jour code promo:', err);
+    }
+  };
+
+  const deletePromoCode = async (id: string) => {
+    if (!confirm('Désactiver et supprimer définitivement ce code promo ?')) return;
+    try {
+      const res = await fetch(`/api/admin/promo-codes/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': adminSessionPassword },
+      });
+      if (res.ok) await fetchPromoCodes();
+    } catch (err) {
+      console.error('Erreur suppression code promo:', err);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent) => {
@@ -502,15 +653,30 @@ export default function App() {
 
   const saveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-    const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'inventory');
+    if (!adminSessionPassword) return;
     try {
       if (isEditing) {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', isEditing.id);
-        await updateDoc(docRef, isEditing);
+        const { id, ...updates } = isEditing;
+        const res = await fetch(`/api/admin/inventory/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': adminSessionPassword,
+          },
+          body: JSON.stringify(updates),
+        });
+        if (!res.ok) throw new Error('Erreur sauvegarde');
         setIsEditing(null);
       } else {
-        await addDoc(colRef, { ...newProduct, createdAt: Date.now() });
+        const res = await fetch('/api/admin/inventory', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-password': adminSessionPassword,
+          },
+          body: JSON.stringify(newProduct),
+        });
+        if (!res.ok) throw new Error('Erreur création');
         setNewProduct({ name: '', price: '', description: '', category: 'Sac à main', colors: '', images: [] as string[], stockQuantity: 1, showFomo: false, isPublished: false, isPreOrder: false, colorVariants: [] });
       }
     } catch (err) { console.error("Save error", err); }
@@ -518,13 +684,18 @@ export default function App() {
 
   const deleteProduct = async (id: string) => {
     if(!confirm("Supprimer définitivement cette pièce ?")) return;
-    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventory', id);
-    await deleteDoc(docRef);
+    try {
+      const res = await fetch(`/api/admin/inventory/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': adminSessionPassword },
+      });
+      if (!res.ok) throw new Error('Erreur suppression');
+    } catch (err) { console.error('Delete error', err); }
   };
 
   const sendTrackingEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!trackingForm.commandeId || !user) return;
+    if (!trackingForm.commandeId || !adminSessionPassword) return;
 
     setIsSendingTracking(true);
     setTrackingStatus('idle');
@@ -545,21 +716,29 @@ export default function App() {
         throw new Error(err.error || 'Erreur envoi courriel');
       }
 
-      // 2. Sauvegarder dans l'historique Firestore
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'trackings'), {
-        ...trackingForm,
-        date: new Date().toISOString()
-      });
-
-      // 3. Mettre à jour le statut du client
-      const clientToUpdate = clients.find(c => c.id === trackingForm.commandeId);
-      if (clientToUpdate) {
-        await updateDoc(doc(db, 'clients', clientToUpdate.id), {
-          statut: 'Expédié',
+      // 2. & 3. Enregistrer dans l'historique + mettre à jour le statut de la commande via l'API admin
+      const trackingRes = await fetch('/api/admin/trackings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': adminSessionPassword,
+        },
+        body: JSON.stringify({
+          commandeId: trackingForm.commandeId,
           trackingNumber: trackingForm.trackingNumber,
-          dateExpedition: new Date().toISOString()
-        });
+          email: trackingForm.email,
+          nom: trackingForm.name,
+          produits: trackingForm.produits,
+          transporteur: trackingForm.carrier,
+        }),
+      });
+      if (!trackingRes.ok) {
+        const err = await trackingRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Erreur enregistrement tracking');
       }
+
+      // Rafraîchir les listes
+      await Promise.all([fetchClients(), fetchTrackings()]);
 
       setTrackingStatus('success');
       setTrackingForm({ ...trackingForm, trackingNumber: '', commandeId: '', produits: '' });
@@ -668,21 +847,55 @@ export default function App() {
               <h1 className="text-2xl font-serif uppercase tracking-[0.5em] font-light">Amélia Ruby</h1>
               <p className="text-[10px] uppercase tracking-[0.4em] text-[#C5A059] font-medium">Espace Privé Artisan</p>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); if(adminPassword === 'atelier2024') setIsAdminAuthenticated(true); else alert("Code incorrect"); }} className="space-y-8">
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (isVerifyingAdmin) return;
+                setAdminLoginError('');
+                setIsVerifyingAdmin(true);
+                try {
+                  const res = await fetch('/api/admin/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: adminPassword }),
+                  });
+                  if (res.ok) {
+                    setAdminSessionPassword(adminPassword);
+                    setIsAdminAuthenticated(true);
+                    setAdminPassword('');
+                  } else {
+                    setAdminLoginError('Code incorrect.');
+                  }
+                } catch {
+                  setAdminLoginError('Erreur de connexion. Réessayez.');
+                } finally {
+                  setIsVerifyingAdmin(false);
+                }
+              }}
+              className="space-y-8"
+            >
               <div className="relative">
-                <input 
+                <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Code d'accès atelier"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
+                  autoComplete="off"
                   className="w-full bg-transparent border-b border-stone-200 py-4 text-center text-sm tracking-[0.2em] outline-none transition-all placeholder:text-[10px]"
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-1/2 -translate-y-1/2 text-stone-300">
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <button type="submit" className="w-full bg-stone-900 text-white py-5 text-[10px] uppercase tracking-[0.3em] font-medium hover:bg-[#C5A059] transition-all shadow-xl">
-                Connexion
+              {adminLoginError && (
+                <p className="text-[10px] uppercase tracking-[0.3em] text-red-600 font-light text-center">{adminLoginError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={isVerifyingAdmin || !adminPassword}
+                className="w-full bg-stone-900 text-white py-5 text-[10px] uppercase tracking-[0.3em] font-medium hover:bg-[#C5A059] transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isVerifyingAdmin ? 'Vérification…' : 'Connexion'}
               </button>
             </form>
           </div>
@@ -703,11 +916,17 @@ export default function App() {
                 >
                   Collections
                 </button>
-                <button 
+                <button
                   onClick={() => setAdminTab('clients')}
                   className={`text-[10px] uppercase tracking-widest pb-2 border-b-2 transition-all ${adminTab === 'clients' ? 'border-[#C5A059] text-black' : 'border-transparent text-stone-400'}`}
                 >
                   Commandes & Suivi
+                </button>
+                <button
+                  onClick={() => setAdminTab('promos')}
+                  className={`text-[10px] uppercase tracking-widest pb-2 border-b-2 transition-all ${adminTab === 'promos' ? 'border-[#C5A059] text-black' : 'border-transparent text-stone-400'}`}
+                >
+                  Codes Promo
                 </button>
               </div>
             </div>
@@ -1025,7 +1244,16 @@ export default function App() {
                            Stock : {p.stockQuantity !== undefined ? p.stockQuantity : '∞'}
                          </span>
                          <button
-                           onClick={async () => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inventory', p.id), { isPublished: !isPub }); }}
+                           onClick={async () => {
+                             await fetch(`/api/admin/inventory/${p.id}`, {
+                               method: 'PATCH',
+                               headers: {
+                                 'Content-Type': 'application/json',
+                                 'x-admin-password': adminSessionPassword,
+                               },
+                               body: JSON.stringify({ isPublished: !isPub }),
+                             });
+                           }}
                            className={`text-[9px] uppercase tracking-widest px-2 py-1 rounded-sm transition-colors ${isPub ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
                          >
                            {isPub ? '● En ligne' : '○ Hors ligne'}
@@ -1059,7 +1287,7 @@ export default function App() {
                </div>
              </div>
            </div>
-          ) : (
+          ) : adminTab === 'clients' ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 animate-in fade-in duration-500">
 
               {/* COLONNE GAUCHE : LISTE DES COMMANDES */}
@@ -1344,6 +1572,163 @@ export default function App() {
                           </div>
                         ))}
                     </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 animate-in fade-in duration-500">
+
+              {/* COLONNE GAUCHE : FORMULAIRE NOUVEAU CODE */}
+              <div className="lg:col-span-5">
+                <form onSubmit={createPromoCode} className="bg-white p-8 shadow-sm border border-stone-100 space-y-6 sticky top-12 rounded-sm">
+                  <h3 className="font-serif text-xl border-b pb-4 flex items-center gap-2">
+                    <PlusCircle size={18}/> Nouveau code promo
+                  </h3>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] uppercase tracking-[0.3em] text-stone-400">Code</label>
+                    <input
+                      type="text"
+                      placeholder="EX: BIENVENUE10"
+                      required
+                      value={newPromo.code}
+                      onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value.toUpperCase() })}
+                      className="w-full border-b py-2 focus:border-[#C5A059] outline-none font-light tracking-wider"
+                    />
+                    <p className="text-[9px] text-stone-400 font-light">Au moins 3 caractères. Sera converti en majuscules.</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] uppercase tracking-[0.3em] text-stone-400">Réduction (%)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      step={1}
+                      placeholder="10"
+                      required
+                      value={newPromo.percentOff}
+                      onChange={(e) => setNewPromo({ ...newPromo, percentOff: e.target.value })}
+                      className="w-full border-b py-2 focus:border-[#C5A059] outline-none font-light"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] uppercase tracking-[0.3em] text-stone-400">Limite d'utilisations <span className="text-stone-300 normal-case tracking-normal">(optionnel)</span></label>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      placeholder="Illimité"
+                      value={newPromo.maxRedemptions}
+                      onChange={(e) => setNewPromo({ ...newPromo, maxRedemptions: e.target.value })}
+                      className="w-full border-b py-2 focus:border-[#C5A059] outline-none font-light"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] uppercase tracking-[0.3em] text-stone-400">Date d'expiration <span className="text-stone-300 normal-case tracking-normal">(optionnel)</span></label>
+                    <input
+                      type="date"
+                      value={newPromo.expiresAt}
+                      onChange={(e) => setNewPromo({ ...newPromo, expiresAt: e.target.value })}
+                      className="w-full border-b py-2 focus:border-[#C5A059] outline-none font-light"
+                    />
+                  </div>
+
+                  {promoFormError && (
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-red-600 font-light">{promoFormError}</p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isCreatingPromo}
+                    className="w-full bg-stone-900 text-white py-4 text-[10px] uppercase tracking-[0.3em] font-medium hover:bg-[#C5A059] transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isCreatingPromo ? <Loader2 size={14} className="animate-spin"/> : <PlusCircle size={14}/>}
+                    {isCreatingPromo ? 'Création…' : 'Créer le code'}
+                  </button>
+                </form>
+              </div>
+
+              {/* COLONNE DROITE : LISTE DES CODES */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-serif text-xl">Codes existants</h3>
+                  <button
+                    onClick={fetchPromoCodes}
+                    disabled={isLoadingPromos}
+                    className="text-[10px] uppercase tracking-widest text-stone-500 hover:text-black transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <RefreshCw size={12} className={isLoadingPromos ? 'animate-spin' : ''}/> Actualiser
+                  </button>
+                </div>
+
+                {isLoadingPromos && promoCodes.length === 0 ? (
+                  <div className="bg-white p-12 text-center border border-stone-100">
+                    <Loader2 size={20} className="animate-spin mx-auto text-stone-400"/>
+                  </div>
+                ) : promoCodes.length === 0 ? (
+                  <div className="bg-white p-12 text-center border border-stone-100">
+                    <p className="text-[11px] uppercase tracking-[0.3em] text-stone-400 font-light">Aucun code promo créé</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {promoCodes.map((p) => {
+                      const expired = p.expiresAt && p.expiresAt * 1000 < Date.now();
+                      const maxedOut = p.maxRedemptions && p.timesRedeemed >= p.maxRedemptions;
+                      const isUsable = p.active && !expired && !maxedOut;
+                      return (
+                        <div key={p.id} className="bg-white p-5 border border-stone-100 flex items-center justify-between gap-4">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <p className="font-mono text-base tracking-widest font-medium">{p.code}</p>
+                              <span className="text-[10px] uppercase tracking-widest text-[#C5A059] font-medium">{p.percentOff}% off</span>
+                              {!isUsable && (
+                                <span className="text-[9px] uppercase tracking-widest px-2 py-0.5 bg-stone-100 text-stone-500 rounded-full">
+                                  {!p.active ? 'Désactivé' : expired ? 'Expiré' : 'Épuisé'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-stone-500 font-light flex-wrap">
+                              <span>{p.timesRedeemed} utilisation{p.timesRedeemed !== 1 ? 's' : ''}{p.maxRedemptions ? ` / ${p.maxRedemptions}` : ''}</span>
+                              {p.expiresAt && (
+                                <>
+                                  <span className="text-stone-300">·</span>
+                                  <span>Expire le {new Date(p.expiresAt * 1000).toLocaleDateString('fr-CA')}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {p.active ? (
+                              <button
+                                onClick={() => togglePromoCode(p.id, false)}
+                                className="text-[10px] uppercase tracking-widest text-stone-500 hover:text-black transition-colors px-3 py-2 border border-stone-200"
+                              >
+                                Désactiver
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => togglePromoCode(p.id, true)}
+                                className="text-[10px] uppercase tracking-widest text-[#C5A059] hover:text-black transition-colors px-3 py-2 border border-[#C5A059]/40"
+                              >
+                                Réactiver
+                              </button>
+                            )}
+                            <button
+                              onClick={() => deletePromoCode(p.id)}
+                              className="text-[10px] uppercase tracking-widest text-stone-400 hover:text-red-600 flex items-center gap-1 px-2 py-2"
+                              title="Supprimer"
+                            >
+                              <Trash2 size={12}/>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

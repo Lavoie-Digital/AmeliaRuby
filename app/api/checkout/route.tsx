@@ -43,6 +43,9 @@ export async function POST(request: Request) {
       payment_method_types: ['card'],
       line_items: line_items,
       mode: 'payment',
+
+      // Permet à la cliente d'utiliser des codes promo créés dans l'admin
+      allow_promotion_codes: true,
       
       // NOUVEAU: Ajoute le nom du produit directement dans la liste des paiements Stripe !
       payment_intent_data: {
