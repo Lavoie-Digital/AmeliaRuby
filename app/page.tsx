@@ -2053,7 +2053,7 @@ export default function App() {
             className="text-stone-400 font-light text-sm leading-[1.9] max-w-xs"
             style={{ opacity: 0, animation: 'fadeUp 1s ease 1.5s forwards' }}
           >
-            Créations en cuir faites à la main. Chaque pièce est taillée dans les plus nobles matières, pour durer une vie.
+            L'Héritage : Design intemporel conçu pour durer. Chaque pièce est imaginée avec soins et fabriquée dans les matériaux les plus nobles.
           </p>
 
           {/* Bouton CTA */}
