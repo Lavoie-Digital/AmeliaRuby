@@ -1,47 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Cache des IDs de taxes au niveau du module pour éviter de les recréer/relister à chaque commande
-let cachedTaxRateIds: string[] | null = null;
-
-// Définition des taxes québécoises. Stripe applique chaque taux sur le montant
-// de base de l'article : 5% + 9,975% = 14,975% au total, avec TPS et TVQ
-// affichées séparément sur la facture (exigence de Revenu Québec).
-const QC_TAXES = [
-  { key: 'TPS-CA', display_name: 'TPS', percentage: 5, description: 'TPS/GST (Canada)' },
-  { key: 'TVQ-QC', display_name: 'TVQ', percentage: 9.975, description: 'TVQ/QST (Québec)' },
-];
-
-// Récupère (ou crée) les taux de taxe TPS/TVQ et retourne leurs IDs.
-// Les Tax Rates Stripe ne peuvent pas être supprimés, seulement désactivés :
-// on réutilise donc ceux qui existent déjà (identifiés via metadata.taxKey).
-async function getQuebecTaxRateIds(stripe: Stripe): Promise<string[]> {
-  if (cachedTaxRateIds) return cachedTaxRateIds;
-
-  const existing = await stripe.taxRates.list({ active: true, limit: 100 });
-
-  const ids = await Promise.all(
-    QC_TAXES.map(async (tax) => {
-      const match = existing.data.find((r) => r.metadata?.taxKey === tax.key);
-      if (match) return match.id;
-
-      const created = await stripe.taxRates.create({
-        display_name: tax.display_name,
-        description: tax.description,
-        percentage: tax.percentage,
-        inclusive: false, // Taxe ajoutée par-dessus le prix affiché
-        country: 'CA',
-        state: 'QC',
-        metadata: { taxKey: tax.key },
-      });
-      return created.id;
-    })
-  );
-
-  cachedTaxRateIds = ids;
-  return ids;
-}
-
 export async function POST(request: Request) {
   try {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -67,9 +26,6 @@ export async function POST(request: Request) {
     // Création d'une description claire pour le tableau de bord Stripe de la cliente
     const orderDescription = items.map((i: any) => `${i.quantity}x ${i.name}`).join(', ');
 
-    // Récupère les IDs des taux de taxe québécois (TPS + TVQ = 14,975%)
-    const taxRateIds = await getQuebecTaxRateIds(stripe);
-
     // Création des articles formatés pour Stripe "à la volée"
     const line_items = items.map((item: any) => ({
       price_data: {
@@ -78,10 +34,10 @@ export async function POST(request: Request) {
           name: item.name,
         },
         unit_amount: Math.round(item.price * 100),
+        // La taxe est ajoutée par-dessus le prix affiché (calculée par Stripe Tax)
+        tax_behavior: 'exclusive' as const,
       },
       quantity: item.quantity,
-      // Applique la TPS (5%) et la TVQ (9,975%) sur chaque article
-      tax_rates: taxRateIds,
     }));
 
     const session = await stripe.checkout.sessions.create({
@@ -89,6 +45,12 @@ export async function POST(request: Request) {
       payment_method_types: ['card'],
       line_items: line_items,
       mode: 'payment',
+
+      // Calcul automatique des taxes par Stripe Tax selon l'adresse du client
+      // (taxes perçues seulement là où tu es enregistré, ex. Canada)
+      automatic_tax: {
+        enabled: true,
+      },
 
       // Interface Stripe Checkout en français
       locale: 'fr',
