@@ -147,15 +147,258 @@ const heroImagesMobile = ['/hero.jpeg', '/hero-2.jpeg', '/hero-3.jpeg', '/hero-4
 
 // Femmes qui ont inspiré Amélia Ruby
 const inspirations = [
-  { name: 'Karine', src: '/femme-2.jpeg', bag: 'Les Karines', story: "La collection Karine présente un sac compact, chic et intemporel, offert en noir, ivoire et brun. Son design épuré, son rabat structuré et sa boucle dorée lui donnent une allure raffinée, parfaite pour compléter un style élégant au quotidien comme lors d’occasions spéciales. Chaque couleur raconte une intention différente : Noir pour le caractère et la sophistication, ivoire pour la douceur et la lumière, brun pour la chaleur et l’élégance naturelle. Karine, c’est le sac essentiel : simple, distingué et facile à porter en toute saison." },
-  { name: 'Katrine Marisa', src: '/femme-3.jpeg', bag: 'Sac Katrine', story: "Compact, élégant et raffiné, le sac Katrine Marisa se distingue par son cuir noir texturé et son détail noué sur le devant. Son design intemporel apporte une touche de luxe discret à chaque tenue, du quotidien aux occasions spéciales. Un sac signature, chic et sophistiqué, pensé pour traverser les saisons avec style." },
-  { name: 'Bianca', src: '/femme-4.jpeg', bag: 'Sac Bianca', story: "Le sac Bianca se distingue par sa silhouette arrondie, sa poignée circulaire et son cuir noir élégant. Son design structuré et intemporel apporte une touche chic et raffinée à chaque style. Pensé comme une pièce accessible à tous, Bianca incarne l’élégance, le caractère et la distinction. Un sac signature, sobre et sophistiqué." },
-  { name: 'Karine MC', src: '/femme-5.jpeg', bag: 'Sac Karine MC', story: "Le sac Karine MC se distingue par son cuir noir lisse, sa structure moderne et sa poignée arquée au style affirmé. Son design compact est aussi pratique qu’élégant grâce à ses deux fermetures éclair, qui permettent une ouverture de chaque côté pour un accès facile et bien organisé. Son fini noir brillant, ses détails dorés et son logo embossé lui donnent une allure sobre, raffinée et intemporelle. Karine MC, un sac chic, pratique et structuré, pensé pour accompagner chaque moment avec distinction." },
+  { name: 'Karine', src: '/femme-2.jpeg', bag: 'Les Karines', bagEn: 'The Karines', story: "La collection Karine présente un sac compact, chic et intemporel, offert en noir, ivoire et brun. Son design épuré, son rabat structuré et sa boucle dorée lui donnent une allure raffinée, parfaite pour compléter un style élégant au quotidien comme lors d’occasions spéciales. Chaque couleur raconte une intention différente : Noir pour le caractère et la sophistication, ivoire pour la douceur et la lumière, brun pour la chaleur et l’élégance naturelle. Karine, c’est le sac essentiel : simple, distingué et facile à porter en toute saison.", storyEn: "The Karine collection features a compact, chic and timeless bag, available in black, ivory and brown. Its clean design, structured flap and golden buckle give it a refined allure, perfect for completing an elegant look both every day and on special occasions. Each colour tells a different intention: black for character and sophistication, ivory for softness and light, brown for warmth and natural elegance. Karine is the essential bag: simple, distinguished and easy to carry in any season." },
+  { name: 'Katrine Marisa', src: '/femme-3.jpeg', bag: 'Sac Katrine', bagEn: 'Katrine Bag', story: "Compact, élégant et raffiné, le sac Katrine Marisa se distingue par son cuir noir texturé et son détail noué sur le devant. Son design intemporel apporte une touche de luxe discret à chaque tenue, du quotidien aux occasions spéciales. Un sac signature, chic et sophistiqué, pensé pour traverser les saisons avec style.", storyEn: "Compact, elegant and refined, the Katrine Marisa bag stands out with its textured black leather and its knotted detail on the front. Its timeless design brings a touch of understated luxury to any outfit, from everyday wear to special occasions. A signature bag — chic and sophisticated — designed to cross the seasons in style." },
+  { name: 'Bianca', src: '/femme-4.jpeg', bag: 'Sac Bianca', bagEn: 'Bianca Bag', story: "Le sac Bianca se distingue par sa silhouette arrondie, sa poignée circulaire et son cuir noir élégant. Son design structuré et intemporel apporte une touche chic et raffinée à chaque style. Pensé comme une pièce accessible à tous, Bianca incarne l’élégance, le caractère et la distinction. Un sac signature, sobre et sophistiqué.", storyEn: "The Bianca bag stands out with its rounded silhouette, circular handle and elegant black leather. Its structured, timeless design brings a chic and refined touch to any style. Conceived as a piece accessible to all, Bianca embodies elegance, character and distinction. A signature bag — understated and sophisticated." },
+  { name: 'Karine MC', src: '/femme-5.jpeg', bag: 'Sac Karine MC', bagEn: 'Karine MC Bag', story: "Le sac Karine MC se distingue par son cuir noir lisse, sa structure moderne et sa poignée arquée au style affirmé. Son design compact est aussi pratique qu’élégant grâce à ses deux fermetures éclair, qui permettent une ouverture de chaque côté pour un accès facile et bien organisé. Son fini noir brillant, ses détails dorés et son logo embossé lui donnent une allure sobre, raffinée et intemporelle. Karine MC, un sac chic, pratique et structuré, pensé pour accompagner chaque moment avec distinction.", storyEn: "The Karine MC bag stands out with its smooth black leather, modern structure and boldly styled arched handle. Its compact design is as practical as it is elegant thanks to its two zippers, which open on each side for easy, well-organised access. Its glossy black finish, golden details and embossed logo give it an understated, refined and timeless allure. Karine MC — a chic, practical and structured bag, designed to accompany every moment with distinction." },
 ];
+
+// Points de vente — boutiques partenaires (logos dans /public)
+const retailers = [
+  { name: 'Salon Uforia', logo: "/Salon%20uforia.jpg", url: 'https://www.facebook.com/uforiasaloncoiffure' },
+  { name: "Boutique l'effet Bulle", logo: "/Boutique%20l%27effet%20bulle.png", url: 'https://www.facebook.com/Boutiqueleffetbulles' },
+  { name: 'Simplement Celyne', logo: "/simplement%20celyne.jpg", url: 'https://www.facebook.com/profile.php?id=100064620854240' },
+  { name: 'Aberdeen Gift', logo: "/aberdeen.jpg", url: 'https://www.facebook.com/aberdeengift1' },
+];
+
+// ─── TRADUCTIONS FR / EN ───────────────────────────────────────────────
+const translations = {
+  fr: {
+    // Navbar
+    navCollection: 'Collection',
+    navBespoke: 'Sur Mesure',
+    navContact: 'Contact',
+    navCart: 'Panier',
+    // Hero
+    heroLabel: 'Maison de Haute Maroquinerie · Montréal',
+    heroTitle1: "L'Héritage",
+    heroTitle2: 'Artisanal',
+    heroSubtitle: "L'Héritage : Design intemporel conçu pour durer. Chaque pièce est imaginée avec soins et fabriquée dans les matériaux les plus nobles.",
+    heroCta: 'Explorer la collection',
+    heroScroll: 'Défiler',
+    heroPieces: (n: number) => `${n} pièces · Collection 2026`,
+    heroCollection: 'Collection 2026',
+    // Marquee
+    marquee: ['Chaque Sac, une Histoire', 'Haute Maroquinerie', 'Montréal', 'Fait à la Main', 'Pièces Uniques', 'Inspiré par Elles', 'Cuir Noble', "Artisanat d'Excellence", 'Créations Intemporelles', 'Atelier Amélia Ruby'],
+    // Grille produits
+    productsTitle1: 'Pièces',
+    productsTitle2: 'Intemporelles',
+    soldOut: 'Épuisé',
+    viewDetails: 'Voir les détails',
+    onlyLeft: 'Plus que ',
+    defaultCategory: 'Collection',
+    // Histoire de la marque
+    universeLabel: 'Notre Univers',
+    universeTitlePre: 'Chaque sac a son ',
+    universeTitleEm: 'histoire',
+    universeText: "Derrière chaque création, le souvenir d'une femme qui a marqué Amélia Ruby. Ces portraits, ces vies, ces histoires sont l'âme silencieuse de chacune de nos pièces.",
+    readHerStory: 'Lire son histoire',
+    brandQuote: "\"Coudre une pièce, c'est tisser un fil entre deux femmes — celle qui m'a inspirée, et celle qui la portera.\"",
+    // Modale inspiration
+    muse: 'Une muse de la maison',
+    houseSignature: '— Maison Amélia Ruby',
+    close: 'Fermer',
+    // Points de vente
+    retailersLabel: 'Nos Points de Vente',
+    retailersTitlePre: 'Disponible en ',
+    retailersTitleEm: 'boutique',
+    retailersText: 'Retrouvez nos créations chez nos partenaires de confiance.',
+    retailersVisit: 'Voir sur Facebook',
+    // Atelier IA
+    conciergeLabel: 'Service de Haute Conciergerie',
+    atelierTitlePre: "L'Atelier ",
+    atelierTitleEm: 'Virtuel',
+    atelierText: "Exprimez votre vision. Notre intelligence artificielle, entraînée aux standards de la haute maroquinerie, esquissera un design exclusif. Une première étape d'inspiration avant de confier sa réalisation à nos artisans.",
+    restartCreation: 'Recommencer une création',
+    aiArtisan: 'Artisan IA',
+    theArtisan: "L'Artisan",
+    sketchInProgress: "Création de l'esquisse en cours...",
+    chatPlaceholder: "Exprimez votre vision (ex: Un sac banane en cuir grainé noir, une pochette d'ordinateur...)",
+    canvasBlank: 'La Toile est Vierge',
+    canvasBlankText: 'Partagez votre inspiration à notre artisan virtuel pour dévoiler votre création.',
+    download: 'Télécharger',
+    requestQuote: 'Demander un devis',
+    // Panier
+    yourCart: 'Votre Panier',
+    cartEmpty: 'Le panier est vide',
+    total: 'Total',
+    preOrder: 'Pré-commander',
+    proceedPayment: 'Procéder au paiement',
+    secureTransaction: 'Transaction sécurisée',
+    // Modale produit
+    permanentlySoldOut: 'Pièce définitivement épuisée',
+    limitedEditionPre: 'Édition limitée : Plus que ',
+    limitedEditionPost: ' pièce(s)',
+    colorLabel: 'Couleur :',
+    inStock: 'en stock',
+    soldOutSuffix: ' · épuisé',
+    victimSuccess: 'Victime de son succès',
+    alertSoldOut: 'Victime de son succès, cette pièce est malheureusement épuisée.',
+    addToCart: 'Ajouter au panier',
+    // CTA sur mesure
+    ctaLabel: 'Votre Histoire, Notre Atelier',
+    ctaTitlePre: 'Écrivez votre',
+    ctaTitleEm: 'propre chapitre',
+    ctaText: "Nous avons raconté l'histoire de celles qui nous ont marquées. Confiez-nous la vôtre — et nous la cousons dans une pièce qui n'appartiendra qu'à vous.",
+    ctaButtonAi: 'Atelier Virtuel IA',
+    ctaButtonContact: 'Prendre Contact',
+    // Formulaire de contact
+    contactName: 'Nom',
+    contactEmail: 'Courriel',
+    contactMessage: 'Votre message',
+    contactNamePh: 'Votre nom',
+    contactEmailPh: 'vous@exemple.com',
+    contactMessagePh: 'Racontez-nous votre histoire, votre projet, votre inspiration...',
+    contactSend: 'Envoyer le message',
+    contactSending: 'Envoi en cours...',
+    contactSuccess: 'Merci ! Votre message a bien été envoyé. Vous recevrez une réponse dans un délai de 24 heures.',
+    contactError: "Une erreur est survenue lors de l'envoi. Réessayez ou écrivez-nous à info@ameliaruby.com.",
+    contactRequired: 'Veuillez remplir tous les champs.',
+    contactDelay: 'Réponse garantie sous 24 heures',
+    // Footer
+    footerTagline: 'Maison de Haute Maroquinerie',
+    footerCity: 'Montréal, Québec',
+    footerCertified: 'Artisan certifié',
+    footerNav: 'Navigation',
+    footerAiAtelier: 'Atelier IA Sur Mesure',
+    footerContact: 'Contact',
+    footerPrivateAccess: 'Accès Atelier Privé',
+    footerRights: '© 2026 — Maison Amélia Ruby — Tous droits réservés',
+    footerMade: 'Fait avec soin à Montréal',
+    footerCredit: 'Création de Lavoie Digital',
+    // Chatbot messages
+    chatWelcome: "Bienvenue dans l'Atelier Sur Mesure. Décrivez-moi l'allure, les matières et les détails de la création que vous imaginez (sac, banane, pochette ordinateur...). Je me chargerai d'en esquisser la vision.",
+    chatLimit: 'Vous avez atteint la limite de créations pour le moment. Réessayez dans 30 minutes.',
+    chatError: "Notre artisan rencontre une difficulté à visualiser ces nouveaux détails. N'hésitez pas à reformuler ou à démarrer une nouvelle toile.",
+  },
+  en: {
+    // Navbar
+    navCollection: 'Collection',
+    navBespoke: 'Bespoke',
+    navContact: 'Contact',
+    navCart: 'Cart',
+    // Hero
+    heroLabel: 'House of Fine Leather Goods · Montreal',
+    heroTitle1: 'Artisanal',
+    heroTitle2: 'Heritage',
+    heroSubtitle: 'The Heritage: timeless design built to last. Every piece is imagined with care and crafted from the noblest materials.',
+    heroCta: 'Explore the collection',
+    heroScroll: 'Scroll',
+    heroPieces: (n: number) => `${n} pieces · 2026 Collection`,
+    heroCollection: '2026 Collection',
+    // Marquee
+    marquee: ['Every Bag, a Story', 'Fine Leather Goods', 'Montreal', 'Handmade', 'Unique Pieces', 'Inspired by Them', 'Noble Leather', 'Craftsmanship of Excellence', 'Timeless Creations', 'Amélia Ruby Atelier'],
+    // Grille produits
+    productsTitle1: 'Timeless',
+    productsTitle2: 'Pieces',
+    soldOut: 'Sold Out',
+    viewDetails: 'View details',
+    onlyLeft: 'Only ',
+    defaultCategory: 'Collection',
+    // Histoire de la marque
+    universeLabel: 'Our World',
+    universeTitlePre: 'Every bag has its ',
+    universeTitleEm: 'story',
+    universeText: 'Behind every creation lies the memory of a woman who left her mark on Amélia Ruby. These portraits, these lives, these stories are the silent soul of each of our pieces.',
+    readHerStory: 'Read her story',
+    brandQuote: '"To sew a piece is to weave a thread between two women — the one who inspired me, and the one who will carry it."',
+    // Modale inspiration
+    muse: 'A muse of the house',
+    houseSignature: '— Maison Amélia Ruby',
+    close: 'Close',
+    // Points de vente
+    retailersLabel: 'Where to Find Us',
+    retailersTitlePre: 'Available in ',
+    retailersTitleEm: 'store',
+    retailersText: 'Find our creations at our trusted partner boutiques.',
+    retailersVisit: 'View on Facebook',
+    // Atelier IA
+    conciergeLabel: 'Haute Concierge Service',
+    atelierTitlePre: 'The Virtual ',
+    atelierTitleEm: 'Atelier',
+    atelierText: 'Express your vision. Our artificial intelligence, trained to the standards of fine leather goods, will sketch an exclusive design. A first step of inspiration before entrusting its making to our artisans.',
+    restartCreation: 'Start a new creation',
+    aiArtisan: 'AI Artisan',
+    theArtisan: 'The Artisan',
+    sketchInProgress: 'Creating your sketch...',
+    chatPlaceholder: 'Express your vision (e.g. a black grained-leather belt bag, a laptop sleeve...)',
+    canvasBlank: 'The Canvas is Blank',
+    canvasBlankText: 'Share your inspiration with our virtual artisan to unveil your creation.',
+    download: 'Download',
+    requestQuote: 'Request a quote',
+    // Panier
+    yourCart: 'Your Cart',
+    cartEmpty: 'Your cart is empty',
+    total: 'Total',
+    preOrder: 'Pre-order',
+    proceedPayment: 'Proceed to payment',
+    secureTransaction: 'Secure transaction',
+    // Modale produit
+    permanentlySoldOut: 'Piece permanently sold out',
+    limitedEditionPre: 'Limited edition: only ',
+    limitedEditionPost: ' piece(s) left',
+    colorLabel: 'Colour:',
+    inStock: 'in stock',
+    soldOutSuffix: ' · sold out',
+    victimSuccess: 'Victim of its success',
+    alertSoldOut: 'Victim of its success, this piece is unfortunately sold out.',
+    addToCart: 'Add to cart',
+    // CTA sur mesure
+    ctaLabel: 'Your Story, Our Atelier',
+    ctaTitlePre: 'Write your',
+    ctaTitleEm: 'own chapter',
+    ctaText: 'We have told the stories of the women who left their mark on us. Entrust us with yours — and we will sew it into a piece that belongs to you alone.',
+    ctaButtonAi: 'AI Virtual Atelier',
+    ctaButtonContact: 'Get in touch',
+    // Formulaire de contact
+    contactName: 'Name',
+    contactEmail: 'Email',
+    contactMessage: 'Your message',
+    contactNamePh: 'Your name',
+    contactEmailPh: 'you@example.com',
+    contactMessagePh: 'Tell us your story, your project, your inspiration...',
+    contactSend: 'Send message',
+    contactSending: 'Sending...',
+    contactSuccess: 'Thank you! Your message has been sent. You will receive a reply within 24 hours.',
+    contactError: 'Something went wrong while sending. Please try again or email us at info@ameliaruby.com.',
+    contactRequired: 'Please fill in all fields.',
+    contactDelay: 'Guaranteed reply within 24 hours',
+    // Footer
+    footerTagline: 'House of Fine Leather Goods',
+    footerCity: 'Montreal, Quebec',
+    footerCertified: 'Certified artisan',
+    footerNav: 'Navigation',
+    footerAiAtelier: 'AI Bespoke Atelier',
+    footerContact: 'Contact',
+    footerPrivateAccess: 'Private Atelier Access',
+    footerRights: '© 2026 — Maison Amélia Ruby — All rights reserved',
+    footerMade: 'Made with care in Montreal',
+    footerCredit: 'Created by Lavoie Digital',
+    // Chatbot messages
+    chatWelcome: 'Welcome to the Bespoke Atelier. Describe to me the allure, the materials and the details of the creation you have in mind (bag, belt bag, laptop sleeve...). I will sketch out the vision for you.',
+    chatLimit: 'You have reached the creation limit for now. Please try again in 30 minutes.',
+    chatError: 'Our artisan is having trouble visualising these new details. Feel free to rephrase or start a new canvas.',
+  },
+} as const;
+
+type Lang = keyof typeof translations;
 
 export default function App() {
   // États Globaux
   const [view, setView] = useState<'shop' | 'admin'>('shop');
+  // Langue (FR / EN) — persistée dans localStorage
+  const [lang, setLang] = useState<Lang>('fr');
+  const t = translations[lang];
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('ar-lang');
+      if (stored === 'fr' || stored === 'en') setLang(stored);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem('ar-lang', lang); } catch {}
+    if (typeof document !== 'undefined') document.documentElement.lang = lang;
+  }, [lang]);
   const [adminTab, setAdminTab] = useState<'inventory' | 'clients' | 'promos'>('inventory');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -195,6 +438,11 @@ export default function App() {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const checkoutRef = useRef<HTMLDivElement>(null);
 
+  // États Formulaire de contact
+  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+  const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [contactFeedback, setContactFeedback] = useState('');
+
   // États Admin - Produit
   const [isEditing, setIsEditing] = useState<any | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -214,8 +462,14 @@ export default function App() {
   const [trackingStatus, setTrackingStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   // IA Chatbot États
-  const initialChatMessage = { role: 'bot', type: 'text', content: 'Bienvenue dans l\'Atelier Sur Mesure. Décrivez-moi l\'allure, les matières et les détails de la création que vous imaginez (sac, banane, pochette ordinateur...). Je me chargerai d\'en esquisser la vision.' };
+  const initialChatMessage = { role: 'bot', type: 'text', content: t.chatWelcome };
   const [chatMessages, setChatMessages] = useState<Array<{role: string, type: string, content: string}>>([initialChatMessage]);
+  // Retraduire le message d'accueil si l'utilisateur change de langue avant d'interagir
+  useEffect(() => {
+    setChatMessages(prev => (prev.length === 1 && prev[0].role === 'bot' && prev[0].type === 'text')
+      ? [{ role: 'bot', type: 'text', content: t.chatWelcome }]
+      : prev);
+  }, [lang, t.chatWelcome]);
   const [chatInput, setChatInput] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [latestImage, setLatestImage] = useState<string | null>(null);
@@ -357,7 +611,7 @@ export default function App() {
     // Vérification du stock
     const isSoldOut = product.stockQuantity !== undefined && product.stockQuantity <= 0;
     if (isSoldOut) {
-      alert("Victime de son succès, cette pièce est malheureusement épuisée.");
+      alert(t.alertSoldOut);
       return;
     }
 
@@ -759,6 +1013,36 @@ export default function App() {
     else setSelectedColor('');
   };
 
+  // --- FORMULAIRE DE CONTACT ---
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (contactStatus === 'sending') return;
+    const name = contactForm.name.trim();
+    const email = contactForm.email.trim();
+    const message = contactForm.message.trim();
+    if (!name || !email || !message) {
+      setContactStatus('error');
+      setContactFeedback(t.contactRequired);
+      return;
+    }
+    setContactStatus('sending');
+    setContactFeedback('');
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message, lang }),
+      });
+      if (!res.ok) throw new Error('send failed');
+      setContactStatus('success');
+      setContactFeedback(t.contactSuccess);
+      setContactForm({ name: '', email: '', message: '' });
+    } catch {
+      setContactStatus('error');
+      setContactFeedback(t.contactError);
+    }
+  };
+
   // --- LOGIQUE CHATBOT IA (RÉINITIALISATION DE L'ATELIER) ---
   const resetChat = () => {
     if (confirm("Voulez-vous effacer la toile et recommencer une nouvelle création ?")) {
@@ -793,7 +1077,7 @@ export default function App() {
       });
 
       if (response.status === 429) {
-        setChatMessages(prev => [...prev, { role: 'bot', type: 'text', content: "Vous avez atteint la limite de créations pour le moment. Réessayez dans 30 minutes." }]);
+        setChatMessages(prev => [...prev, { role: 'bot', type: 'text', content: t.chatLimit }]);
         return;
       }
 
@@ -817,7 +1101,7 @@ export default function App() {
 
     } catch (error: any) {
       console.error("Erreur génération :", error);
-      setChatMessages(prev => [...prev, { role: 'bot', type: 'text', content: `Notre artisan rencontre une difficulté à visualiser ces nouveaux détails. N'hésitez pas à reformuler ou à démarrer une nouvelle toile.` }]);
+      setChatMessages(prev => [...prev, { role: 'bot', type: 'text', content: t.chatError }]);
     } finally {
       setIsGeneratingImage(false);
     }
@@ -1807,7 +2091,7 @@ export default function App() {
               <button
                 className="absolute top-5 right-5 z-50 p-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full text-white transition-colors"
                 onClick={() => setSelectedInspiration(null)}
-                aria-label="Fermer"
+                aria-label={t.close}
               >
                 <X size={18} />
               </button>
@@ -1825,20 +2109,20 @@ export default function App() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-6 h-[1px] bg-[#C5A059]" />
-                    <p className="text-[9px] uppercase tracking-[0.5em] text-[#C5A059]">Une muse de la maison</p>
+                    <p className="text-[9px] uppercase tracking-[0.5em] text-[#C5A059]">{t.muse}</p>
                   </div>
                   <h2 className="font-serif text-4xl md:text-6xl text-white italic leading-none">{selectedInspiration.name}</h2>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 pt-1">{selectedInspiration.bag}</p>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 pt-1">{lang === 'en' ? selectedInspiration.bagEn : selectedInspiration.bag}</p>
                 </div>
 
                 <div className="w-12 h-[1px] bg-[#C5A059]/30" />
 
                 <p className="font-serif text-white/80 leading-[2] text-sm md:text-base">
-                  {selectedInspiration.story}
+                  {lang === 'en' ? selectedInspiration.storyEn : selectedInspiration.story}
                 </p>
 
                 <div className="pt-2">
-                  <p className="text-[8px] uppercase tracking-[0.4em] text-[#C5A059]/50">— Maison Amélia Ruby</p>
+                  <p className="text-[8px] uppercase tracking-[0.4em] text-[#C5A059]/50">{t.houseSignature}</p>
                 </div>
               </div>
             </motion.div>
@@ -1853,7 +2137,7 @@ export default function App() {
           <div className="relative w-full max-w-2xl bg-white shadow-2xl animate-in zoom-in-95 overflow-hidden rounded-sm">
             <div className="p-4 border-b flex justify-between items-center bg-stone-50">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-[#C5A059] font-medium">
-                <Lock size={12} /> Transaction sécurisée
+                <Lock size={12} /> {t.secureTransaction}
               </div>
               <button onClick={() => setClientSecret(null)}><X size={20}/></button>
             </div>
@@ -1882,14 +2166,14 @@ export default function App() {
               transition={{ type: 'spring', damping: 28, stiffness: 220 }}
             >
               <div className="p-8 border-b flex justify-between items-center">
-                <h3 className="font-serif text-2xl uppercase tracking-widest italic">Votre Panier</h3>
+                <h3 className="font-serif text-2xl uppercase tracking-widest italic">{t.yourCart}</h3>
                 <button onClick={() => setIsCartOpen(false)}><X size={24} strokeWidth={1} /></button>
               </div>
               <div className="flex-1 overflow-y-auto p-8 space-y-8">
                 {cart.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-stone-400 gap-4 opacity-50">
                     <ShoppingBag size={48} strokeWidth={1} />
-                    <p className="uppercase tracking-[0.3em] text-[10px]">Le panier est vide</p>
+                    <p className="uppercase tracking-[0.3em] text-[10px]">{t.cartEmpty}</p>
                   </div>
                 ) : cart.map(item => (
                   <motion.div
@@ -1927,7 +2211,7 @@ export default function App() {
               {cart.length > 0 && (
                 <div className="p-8 bg-stone-50 border-t space-y-6">
                   <div className="flex justify-between items-end">
-                    <span className="uppercase tracking-widest text-[10px] text-stone-400">Total</span>
+                    <span className="uppercase tracking-widest text-[10px] text-stone-400">{t.total}</span>
                     <span className="font-serif text-3xl">{cart.reduce((a, b) => a + (b.price * b.quantity), 0)} $</span>
                   </div>
                   <motion.button
@@ -1938,7 +2222,7 @@ export default function App() {
                     transition={{ type: 'spring', damping: 18, stiffness: 350 }}
                     className="w-full bg-[#1C1C1C] text-white py-5 text-[10px] uppercase tracking-[0.2em] font-medium hover:bg-[#C5A059] transition-colors shadow-lg flex items-center justify-center gap-2"
                   >
-                    {isCheckingOut ? <Loader2 size={16} className="animate-spin" /> : (cart.some(i => i.isPreOrder) ? "Pré-commander" : "Procéder au paiement")}
+                    {isCheckingOut ? <Loader2 size={16} className="animate-spin" /> : (cart.some(i => i.isPreOrder) ? t.preOrder : t.proceedPayment)}
                   </motion.button>
                 </div>
               )}
@@ -1953,17 +2237,33 @@ export default function App() {
           Amélia Ruby
         </h1>
         <div className="hidden md:flex items-center gap-12">
-          <button onClick={() => scrollToSection('store')} className="text-[9px] uppercase tracking-[0.3em] font-light hover:text-[#C5A059] transition-colors opacity-70 hover:opacity-100">Collection</button>
-          <button onClick={() => scrollToSection('bespoke-ai')} className="text-[9px] uppercase tracking-[0.3em] font-light hover:text-[#C5A059] transition-colors opacity-70 hover:opacity-100">Sur Mesure</button>
-          <a href="mailto:contact@ameliepurtell.com" className="text-[9px] uppercase tracking-[0.3em] font-light hover:text-[#C5A059] transition-colors opacity-70 hover:opacity-100">Contact</a>
+          <button onClick={() => scrollToSection('store')} className="text-[9px] uppercase tracking-[0.3em] font-light hover:text-[#C5A059] transition-colors opacity-70 hover:opacity-100">{t.navCollection}</button>
+          <button onClick={() => scrollToSection('bespoke-ai')} className="text-[9px] uppercase tracking-[0.3em] font-light hover:text-[#C5A059] transition-colors opacity-70 hover:opacity-100">{t.navBespoke}</button>
+          <button onClick={() => scrollToSection('contact')} className="text-[9px] uppercase tracking-[0.3em] font-light hover:text-[#C5A059] transition-colors opacity-70 hover:opacity-100">{t.navContact}</button>
         </div>
-        <button onClick={() => setIsCartOpen(true)} className="relative group flex items-center gap-3">
-           <span className="hidden md:block text-[9px] uppercase tracking-[0.3em] font-light opacity-70 group-hover:opacity-100 group-hover:text-[#C5A059] transition-all">Panier</span>
-           <div className="relative">
-             <ShoppingBag size={20} strokeWidth={1} className="group-hover:text-[#C5A059] transition-colors" />
-             {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-[#C5A059] text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{cart.length}</span>}
-           </div>
-        </button>
+        <div className="flex items-center gap-6 md:gap-8">
+          {/* PASTILLE LANGUE FR / EN */}
+          <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.2em] font-light select-none">
+            <button
+              onClick={() => setLang('fr')}
+              aria-pressed={lang === 'fr'}
+              className={`transition-colors ${lang === 'fr' ? 'text-[#C5A059]' : 'opacity-50 hover:opacity-100'}`}
+            >FR</button>
+            <span className="opacity-30">/</span>
+            <button
+              onClick={() => setLang('en')}
+              aria-pressed={lang === 'en'}
+              className={`transition-colors ${lang === 'en' ? 'text-[#C5A059]' : 'opacity-50 hover:opacity-100'}`}
+            >EN</button>
+          </div>
+          <button onClick={() => setIsCartOpen(true)} className="relative group flex items-center gap-3">
+             <span className="hidden md:block text-[9px] uppercase tracking-[0.3em] font-light opacity-70 group-hover:opacity-100 group-hover:text-[#C5A059] transition-all">{t.navCart}</span>
+             <div className="relative">
+               <ShoppingBag size={20} strokeWidth={1} className="group-hover:text-[#C5A059] transition-colors" />
+               {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-[#C5A059] text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{cart.length}</span>}
+             </div>
+          </button>
+        </div>
       </nav>
 
       {/* HERO SECTION */}
@@ -2018,7 +2318,7 @@ export default function App() {
           <div style={{ opacity: 0, animation: 'fadeUp 1s ease 0.5s forwards' }}>
             <div className="flex items-center justify-center lg:justify-start gap-4 mb-10">
               <div className="w-6 h-[1px] bg-[#C5A059]" />
-              <p className="text-[8px] uppercase tracking-[0.6em] text-[#C5A059]/70 font-light whitespace-nowrap">Maison de Haute Maroquinerie · Montréal</p>
+              <p className="text-[8px] uppercase tracking-[0.6em] text-[#C5A059]/70 font-light whitespace-nowrap">{t.heroLabel}</p>
             </div>
           </div>
 
@@ -2028,7 +2328,7 @@ export default function App() {
               className="font-serif font-light text-white leading-[0.88]"
               style={{ fontSize: 'clamp(3.2rem,8.5vw,7.5rem)', opacity: 0, animation: 'slideUp 1.2s cubic-bezier(0.16,1,0.3,1) 0.65s forwards' }}
             >
-              L'Héritage
+              {t.heroTitle1}
             </h2>
           </div>
 
@@ -2038,7 +2338,7 @@ export default function App() {
               className="font-serif font-light italic text-[#C5A059] leading-[0.88]"
               style={{ fontSize: 'clamp(3.2rem,8.5vw,7.5rem)', opacity: 0, animation: 'slideUp 1.2s cubic-bezier(0.16,1,0.3,1) 0.88s forwards' }}
             >
-              Artisanal
+              {t.heroTitle2}
             </h2>
           </div>
 
@@ -2053,7 +2353,7 @@ export default function App() {
             className="text-stone-400 font-light text-sm leading-[1.9] max-w-xs"
             style={{ opacity: 0, animation: 'fadeUp 1s ease 1.5s forwards' }}
           >
-            L'Héritage : Design intemporel conçu pour durer. Chaque pièce est imaginée avec soins et fabriquée dans les matériaux les plus nobles.
+            {t.heroSubtitle}
           </p>
 
           {/* Bouton CTA */}
@@ -2062,7 +2362,7 @@ export default function App() {
               onClick={() => scrollToSection('store')}
               className="group relative overflow-hidden border border-white/20 px-12 py-5 text-[10px] uppercase tracking-[0.4em] text-white font-light hover:border-[#C5A059] flex items-center gap-5 transition-colors duration-500"
             >
-              <span className="relative z-10">Explorer la collection</span>
+              <span className="relative z-10">{t.heroCta}</span>
               <span className="block h-[1px] w-5 bg-white/30 group-hover:w-10 group-hover:bg-[#C5A059] transition-all duration-500" />
               <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </button>
@@ -2073,7 +2373,7 @@ export default function App() {
             className="text-[8px] uppercase tracking-[0.5em] text-white/18 mt-14"
             style={{ opacity: 0, animation: 'fadeUp 1s ease 2.1s forwards' }}
           >
-            {products.length > 0 ? `${products.length} pièces · Collection 2026` : 'Collection 2026'}
+            {products.length > 0 ? t.heroPieces(products.length) : t.heroCollection}
           </p>
         </div>
 
@@ -2085,7 +2385,7 @@ export default function App() {
           <div className="w-[1px] h-12 bg-white/20 relative overflow-hidden">
             <div className="absolute inset-x-0 h-6 bg-white/40" style={{ animation: 'scroll-line 2s ease-in-out infinite' }} />
           </div>
-          <span className="text-[7px] uppercase tracking-[0.7em] text-white/25">Défiler</span>
+          <span className="text-[7px] uppercase tracking-[0.7em] text-white/25">{t.heroScroll}</span>
         </div>
 
 
@@ -2096,7 +2396,7 @@ export default function App() {
         <div style={{ animation: 'marquee 40s linear infinite', display: 'flex', width: 'max-content' }}>
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex items-center">
-              {['Chaque Sac, une Histoire', 'Haute Maroquinerie', 'Montréal', 'Fait à la Main', 'Pièces Uniques', 'Inspiré par Elles', 'Cuir Noble', "Artisanat d'Excellence", 'Créations Intemporelles', 'Atelier Amélia Ruby'].map((text, j) => (
+              {t.marquee.map((text, j) => (
                 <span key={j} className="flex items-center gap-8 px-8 text-[8px] uppercase tracking-[0.5em] text-white/25 whitespace-nowrap">
                   {text} <span className="w-1 h-1 rounded-full bg-[#C5A059] inline-block flex-shrink-0" />
                 </span>
@@ -2109,7 +2409,7 @@ export default function App() {
       {/* GRILLE DE PRODUITS */}
       <section id="store" className="py-20 md:py-32 px-3 md:px-20 max-w-7xl mx-auto border-b border-stone-200/50">
         <div className="mb-16 md:mb-32 text-center space-y-4">
-          <Reveal><h3 className="text-3xl md:text-5xl font-serif font-light leading-tight">Pièces <span className="italic text-[#C5A059]">Intemporelles</span></h3></Reveal>
+          <Reveal><h3 className="text-3xl md:text-5xl font-serif font-light leading-tight">{t.productsTitle1} <span className="italic text-[#C5A059]">{t.productsTitle2}</span></h3></Reveal>
           <Reveal delay={200}><div className="w-12 h-px bg-[#C5A059] mx-auto opacity-50"></div></Reveal>
         </div>
 
@@ -2139,14 +2439,14 @@ export default function App() {
                     {isSoldOut ? (
                       <div className="absolute inset-0 bg-white/30 backdrop-blur-[2px] flex items-center justify-center z-10 transition-all">
                          <span className="bg-white/95 px-4 md:px-8 py-2 md:py-3 text-[8px] md:text-[10px] uppercase tracking-[0.3em] md:tracking-[0.4em] font-medium text-stone-900 shadow-xl border border-stone-100/50">
-                            Épuisé
+                            {t.soldOut}
                          </span>
                       </div>
                     ) : (
                       <>
                         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex items-end p-8">
                           <button className="w-full bg-white text-black py-4 text-[10px] uppercase tracking-widest font-medium transition-all hover:bg-[#C5A059] hover:text-white shadow-xl translate-y-4 group-hover:translate-y-0 duration-500">
-                            Voir les détails
+                            {t.viewDetails}
                           </button>
                         </div>
                         {/* BADGE FOMO */}
@@ -2154,7 +2454,7 @@ export default function App() {
                           <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-[#C5A059] text-white px-2 py-1 md:px-3 md:py-1.5 text-[7px] md:text-[8px] uppercase tracking-widest shadow-md flex items-center gap-1 md:gap-1.5">
                              <Clock size={9} className="md:hidden" />
                              <Clock size={10} className="hidden md:block" />
-                             <span className="hidden md:inline">Plus que </span>{p.stockQuantity}
+                             <span className="hidden md:inline">{t.onlyLeft}</span>{p.stockQuantity}
                           </div>
                         )}
                       </>
@@ -2162,7 +2462,7 @@ export default function App() {
                   </div>
                   <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-1 px-1 md:px-2">
                     <div className="space-y-0.5 md:space-y-1 min-w-0">
-                      <p className="text-[8px] md:text-[9px] uppercase tracking-[0.2em] text-[#C5A059] font-medium">{p.category || 'Collection'}</p>
+                      <p className="text-[8px] md:text-[9px] uppercase tracking-[0.2em] text-[#C5A059] font-medium">{p.category || t.defaultCategory}</p>
                       <h4 className="font-serif text-sm md:text-xl tracking-wide text-stone-900 truncate">{p.name}</h4>
                     </div>
                     <span className="text-xs md:text-md font-light text-stone-500">{p.price} $</span>
@@ -2181,15 +2481,15 @@ export default function App() {
           <Reveal>
             <div className="flex items-center gap-4 mb-6">
               <div className="w-6 h-[1px] bg-[#C5A059]" />
-              <p className="text-[9px] uppercase tracking-[0.5em] text-[#C5A059]">Notre Univers</p>
+              <p className="text-[9px] uppercase tracking-[0.5em] text-[#C5A059]">{t.universeLabel}</p>
             </div>
             <h3 className="text-4xl md:text-6xl font-serif font-light text-white leading-[1.1] max-w-3xl">
-              Chaque sac a son <em className="not-italic text-shimmer">histoire</em>
+              {t.universeTitlePre}<em className="not-italic text-shimmer">{t.universeTitleEm}</em>
             </h3>
           </Reveal>
           <Reveal delay={200}>
             <p className="text-stone-400 leading-[1.9] font-light text-sm md:text-base max-w-xl mt-8">
-              Derrière chaque création, le souvenir d'une femme qui a marqué Amélia Ruby. Ces portraits, ces vies, ces histoires sont l'âme silencieuse de chacune de nos pièces.
+              {t.universeText}
             </p>
           </Reveal>
         </div>
@@ -2199,8 +2499,10 @@ export default function App() {
           <div className="absolute inset-y-0 left-0 w-20 md:w-40 z-10 bg-gradient-to-r from-[#0F0F0F] to-transparent pointer-events-none" />
           <div className="absolute inset-y-0 right-0 w-20 md:w-40 z-10 bg-gradient-to-l from-[#0F0F0F] to-transparent pointer-events-none" />
 
-          <div className="flex hover:[animation-play-state:paused]" style={{ animation: 'marquee 80s linear infinite', width: 'max-content' }}>
-            {inspirations.concat(inspirations).map((p, i) => (
+          {/* On répète la base plusieurs fois pour que chaque moitié dépasse la largeur
+              des très grands écrans : le translate de -50% reste ainsi toujours transparent (boucle infinie). */}
+          <div className="flex hover:[animation-play-state:paused]" style={{ animation: 'marquee 320s linear infinite', width: 'max-content' }}>
+            {[...Array(8)].flatMap(() => inspirations).map((p, i) => (
               <div
                 key={i}
                 className={`flex-shrink-0 px-2 md:px-4 ${i % 3 === 0 ? 'pt-0' : i % 3 === 1 ? 'pt-10 md:pt-16' : 'pt-5 md:pt-8'}`}
@@ -2208,7 +2510,7 @@ export default function App() {
                 <button
                   onClick={() => setSelectedInspiration(p)}
                   className="block w-[200px] md:w-[280px] aspect-[3/4] overflow-hidden bg-stone-800 group relative cursor-pointer text-left"
-                  aria-label={`Lire l'histoire de ${p.name}`}
+                  aria-label={`${t.readHerStory} — ${p.name}`}
                 >
                   <img
                     src={p.src}
@@ -2220,10 +2522,10 @@ export default function App() {
                   <div className="absolute bottom-0 left-0 right-0 p-5 space-y-2 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-500">
                     <div className="w-5 h-[1px] bg-[#C5A059] transition-all duration-500 group-hover:w-10" />
                     <p className="font-serif text-white text-xl md:text-2xl italic leading-tight">{p.name}</p>
-                    <p className="text-[8px] uppercase tracking-[0.3em] text-white/50">{p.bag}</p>
+                    <p className="text-[8px] uppercase tracking-[0.3em] text-white/50">{lang === 'en' ? p.bagEn : p.bag}</p>
                   </div>
                   <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 border border-[#C5A059]/40 bg-[#0F0F0F]/60 backdrop-blur-sm px-3 py-1.5">
-                    <p className="text-[8px] uppercase tracking-[0.3em] text-[#C5A059]">Lire son histoire</p>
+                    <p className="text-[8px] uppercase tracking-[0.3em] text-[#C5A059]">{t.readHerStory}</p>
                   </div>
                 </button>
               </div>
@@ -2236,10 +2538,63 @@ export default function App() {
           <Reveal>
             <div className="w-px h-12 bg-[#C5A059]/30 mx-auto mb-8" />
             <p className="font-serif italic text-white/80 text-lg md:text-xl leading-relaxed">
-              "Coudre une pièce, c'est tisser un fil entre deux femmes — celle qui m'a inspirée, et celle qui la portera."
+              {t.brandQuote}
             </p>
             <p className="text-[8px] uppercase tracking-[0.5em] text-[#C5A059]/60 mt-6">— Amélia Ruby</p>
           </Reveal>
+        </div>
+      </section>
+
+      {/* SECTION POINTS DE VENTE */}
+      <section id="retailers" className="py-24 md:py-32 px-6 md:px-20 bg-[#FDFCFB] border-t border-stone-200/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center space-y-4 mb-16 md:mb-20">
+            <Reveal>
+              <div className="flex items-center justify-center gap-4">
+                <div className="w-6 h-[1px] bg-[#C5A059]" />
+                <p className="text-[9px] uppercase tracking-[0.5em] text-[#C5A059]">{t.retailersLabel}</p>
+                <div className="w-6 h-[1px] bg-[#C5A059]" />
+              </div>
+            </Reveal>
+            <Reveal delay={100}>
+              <h3 className="text-3xl md:text-5xl font-serif font-light leading-tight">
+                {t.retailersTitlePre}<span className="italic text-[#C5A059]">{t.retailersTitleEm}</span>
+              </h3>
+            </Reveal>
+            <Reveal delay={200}>
+              <p className="text-stone-400 font-light text-sm max-w-lg mx-auto leading-[1.9]">{t.retailersText}</p>
+            </Reveal>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+            {retailers.map((shop, i) => (
+              <Reveal key={shop.name} delay={i * 100}>
+                <a
+                  href={shop.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${shop.name} — ${t.retailersVisit}`}
+                  className="group flex flex-col items-center text-center bg-white border border-stone-100 rounded-sm p-6 md:p-8 shadow-sm hover:shadow-xl hover:border-[#C5A059]/40 transition-all duration-500 h-full"
+                >
+                  <div className="w-full aspect-square flex items-center justify-center overflow-hidden mb-5">
+                    <img
+                      src={shop.logo}
+                      alt={shop.name}
+                      className="max-w-full max-h-full w-auto h-auto object-contain grayscale-[15%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.2'; }}
+                    />
+                  </div>
+                  <h4 className="font-serif text-base md:text-lg text-stone-900 leading-tight">{shop.name}</h4>
+                  <span className="mt-3 inline-flex items-center gap-1.5 text-[8px] uppercase tracking-[0.3em] text-stone-400 group-hover:text-[#C5A059] transition-colors">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                    </svg>
+                    {t.retailersVisit}
+                  </span>
+                </a>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -2251,13 +2606,13 @@ export default function App() {
             <Reveal>
               <div className="flex items-center justify-center md:justify-start gap-3 text-[#C5A059] mb-4">
                 <Sparkles size={16} strokeWidth={1.5} />
-                <span className="text-[9px] uppercase tracking-[0.5em] font-medium">Service de Haute Conciergerie</span>
+                <span className="text-[9px] uppercase tracking-[0.5em] font-medium">{t.conciergeLabel}</span>
               </div>
               <h3 className="text-4xl md:text-6xl font-serif font-light leading-tight">
-                L'Atelier <span className="italic text-[#C5A059] font-serif">Virtuel</span>
+                {t.atelierTitlePre}<span className="italic text-[#C5A059] font-serif">{t.atelierTitleEm}</span>
               </h3>
               <p className="mt-6 text-stone-400 font-light max-w-xl text-sm leading-relaxed tracking-wide">
-                Exprimez votre vision. Notre intelligence artificielle, entraînée aux standards de la haute maroquinerie, esquissera un design exclusif. Une première étape d'inspiration avant de confier sa réalisation à nos artisans.
+                {t.atelierText}
               </p>
             </Reveal>
             <Reveal delay={200}>
@@ -2265,7 +2620,7 @@ export default function App() {
                   onClick={resetChat} 
                   className="flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] font-light text-stone-400 hover:text-white transition-colors border border-stone-800 px-6 py-3 rounded-full hover:bg-white/5"
                 >
-                  <RefreshCw size={12} /> Recommencer une création
+                  <RefreshCw size={12} /> {t.restartCreation}
                </button>
             </Reveal>
           </div>
@@ -2279,7 +2634,7 @@ export default function App() {
                   <span className="font-serif italic text-lg">P</span>
                 </div>
                 <div>
-                  <h4 className="font-serif text-lg tracking-wide">Artisan IA</h4>
+                  <h4 className="font-serif text-lg tracking-wide">{t.aiArtisan}</h4>
                   <p className="text-[8px] uppercase tracking-[0.3em] text-[#C5A059] mt-1">Maison Amélia Ruby</p>
                 </div>
               </div>
@@ -2296,7 +2651,7 @@ export default function App() {
                           : 'text-left'
                       }`}>
                         {msg.role === 'bot' && idx !== 0 && (
-                          <span className="text-[8px] uppercase tracking-widest text-[#C5A059] mb-2 block">L'Artisan</span>
+                          <span className="text-[8px] uppercase tracking-widest text-[#C5A059] mb-2 block">{t.theArtisan}</span>
                         )}
                         <p className={`text-sm leading-relaxed font-light ${
                           msg.role === 'user' ? 'text-white italic' : 'text-stone-300'
@@ -2311,7 +2666,7 @@ export default function App() {
                   <div className="flex justify-start">
                     <div className="text-[#C5A059] flex items-center gap-3">
                       <Loader2 size={14} className="animate-spin" />
-                      <span className="text-[9px] uppercase tracking-widest font-medium">Création de l'esquisse en cours...</span>
+                      <span className="text-[9px] uppercase tracking-widest font-medium">{t.sketchInProgress}</span>
                     </div>
                   </div>
                 )}
@@ -2328,7 +2683,7 @@ export default function App() {
                         handleChatSubmit();
                       }
                     }}
-                    placeholder="Exprimez votre vision (ex: Un sac banane en cuir grainé noir, une pochette d'ordinateur...)"
+                    placeholder={t.chatPlaceholder}
                     disabled={isGeneratingImage}
                     rows={2}
                     className="w-full bg-transparent border-b border-stone-600 focus:border-[#C5A059] py-2 text-sm font-light outline-none transition-colors disabled:opacity-50 resize-none text-white placeholder:text-stone-600"
@@ -2352,16 +2707,16 @@ export default function App() {
                     <div className="absolute -inset-4 border border-[#C5A059]/20"></div>
                     <img 
                       src={latestImage} 
-                      alt="Esquisse sur mesure générée par IA" 
+                      alt={lang === 'en' ? 'AI-generated bespoke sketch' : 'Esquisse sur mesure générée par IA'} 
                       className="w-auto h-auto max-w-full max-h-[500px] object-contain shadow-2xl shadow-black"
                     />
                   </div>
                   <div className="mt-12 flex flex-col sm:flex-row items-center gap-6 opacity-90 hover:opacity-100 transition-opacity">
                     <button onClick={handleDownloadImage} className="text-[9px] uppercase tracking-[0.3em] font-light border border-white/20 hover:border-[#C5A059] px-6 py-3 rounded-full transition-all flex items-center gap-2 text-stone-300 hover:text-white">
-                      <Download size={12} /> Télécharger
+                      <Download size={12} /> {t.download}
                     </button>
-                    <button onClick={() => window.location.href = "mailto:contact@ameliepurtell.com"} className="text-[9px] uppercase tracking-[0.3em] font-medium bg-[#C5A059] text-black hover:bg-white px-8 py-3 rounded-full transition-all flex items-center gap-2">
-                      <Mail size={12} /> Demander un devis
+                    <button onClick={() => window.location.href = "mailto:info@ameliaruby.com"} className="text-[9px] uppercase tracking-[0.3em] font-medium bg-[#C5A059] text-black hover:bg-white px-8 py-3 rounded-full transition-all flex items-center gap-2">
+                      <Mail size={12} /> {t.requestQuote}
                     </button>
                   </div>
                 </div>
@@ -2371,9 +2726,9 @@ export default function App() {
                      <div className="w-16 h-20 border border-stone-800 absolute"></div>
                      <Sparkles size={24} className="text-stone-600" strokeWidth={1} />
                   </div>
-                  <h4 className="font-serif text-2xl">La Toile est Vierge</h4>
+                  <h4 className="font-serif text-2xl">{t.canvasBlank}</h4>
                   <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500 max-w-xs mx-auto">
-                    Partagez votre inspiration à notre artisan virtuel pour dévoiler votre création.
+                    {t.canvasBlankText}
                   </p>
                 </div>
               )}
@@ -2491,12 +2846,12 @@ export default function App() {
                   {/* MESSAGE STOCK / FOMO / EPUISE */}
                   {selectedProduct.stockQuantity !== undefined && selectedProduct.stockQuantity <= 0 ? (
                     <p className="text-[10px] uppercase tracking-widest text-red-800 font-medium flex items-center gap-2 pt-2">
-                       <X size={14}/> Pièce définitivement épuisée
+                       <X size={14}/> {t.permanentlySoldOut}
                     </p>
                   ) : (
                     selectedProduct.showFomo && selectedProduct.stockQuantity > 0 && (
                       <p className="text-[10px] uppercase tracking-widest text-[#C5A059] font-medium flex items-center gap-2 pt-2">
-                        <Clock size={14}/> Édition limitée : Plus que {selectedProduct.stockQuantity} pièce(s)
+                        <Clock size={14}/> {t.limitedEditionPre}{selectedProduct.stockQuantity}{t.limitedEditionPost}
                       </p>
                     )
                   )}
@@ -2511,10 +2866,10 @@ export default function App() {
                       return (
                         <>
                           <div className="flex items-center justify-between">
-                            <p className="text-[10px] uppercase tracking-widest text-stone-500 font-medium">Couleur : <span className="text-stone-900">{selectedColor || '—'}</span></p>
+                            <p className="text-[10px] uppercase tracking-widest text-stone-500 font-medium">{t.colorLabel} <span className="text-stone-900">{selectedColor || '—'}</span></p>
                             {active && (
                               <span className={`text-[9px] uppercase tracking-widest ${isVariantOut ? 'text-red-700' : 'text-[#C5A059]'}`}>
-                                {isVariantOut ? 'Épuisé' : `${active.stockQuantity} en stock`}
+                                {isVariantOut ? t.soldOut : `${active.stockQuantity} ${t.inStock}`}
                               </span>
                             )}
                           </div>
@@ -2546,7 +2901,7 @@ export default function App() {
                                       <img src={thumb} className={`w-full h-full object-cover ${variantOut ? 'grayscale' : ''}`} alt={variant.name} />
                                     </span>
                                   )}
-                                  <span>{variant.name}{variantOut && ' · épuisé'}</span>
+                                  <span>{variant.name}{variantOut && t.soldOutSuffix}</span>
                                 </button>
                               );
                             })}
@@ -2558,7 +2913,7 @@ export default function App() {
                 ) : selectedProduct.colors ? (
                   // LEGACY : ancien format string sans variantes
                   <div className="space-y-3 border-t border-stone-100 pt-6">
-                    <p className="text-[10px] uppercase tracking-widest text-stone-500 font-medium">Couleur : <span className="text-stone-900">{selectedColor}</span></p>
+                    <p className="text-[10px] uppercase tracking-widest text-stone-500 font-medium">{t.colorLabel} <span className="text-stone-900">{selectedColor}</span></p>
                     <div className="flex flex-wrap gap-2">
                       {selectedProduct.colors.split(',').map((c: string) => c.trim()).filter(Boolean).map((color: string, idx: number) => (
                         <button key={idx} onClick={() => setSelectedColor(color)} className={`px-4 py-2 text-[10px] uppercase tracking-widest border transition-all ${selectedColor === color ? 'border-[#C5A059] bg-[#C5A059]/10 text-[#C5A059]' : 'border-stone-200 text-stone-400'}`}>
@@ -2574,11 +2929,11 @@ export default function App() {
               <div className="pt-16">
                 {selectedProduct.stockQuantity !== undefined && selectedProduct.stockQuantity <= 0 ? (
                   <button disabled className="w-full bg-stone-100 text-stone-400 border border-stone-200 py-6 text-[10px] uppercase tracking-[0.3em] font-medium cursor-not-allowed shadow-sm flex items-center justify-center gap-3">
-                    <Lock size={14} /> Victime de son succès
+                    <Lock size={14} /> {t.victimSuccess}
                   </button>
                 ) : (
                   <button onClick={() => addToCart(selectedProduct)} className="w-full bg-[#1C1C1C] text-white py-6 text-[10px] uppercase tracking-[0.3em] font-medium hover:bg-[#C5A059] transition-all shadow-xl group flex items-center justify-center gap-4">
-                    {selectedProduct.isPreOrder ? 'Pré-commander' : 'Ajouter au panier'} <ShoppingBag size={14} />
+                    {selectedProduct.isPreOrder ? t.preOrder : t.addToCart} <ShoppingBag size={14} />
                   </button>
                 )}
               </div>
@@ -2589,36 +2944,91 @@ export default function App() {
       )}
       </AnimatePresence>
 
-      {/* SECTION CTA SUR MESURE */}
-      <section className="py-40 px-6 md:px-20 bg-[#FDFCFB] relative overflow-hidden">
-        <div className="max-w-4xl mx-auto text-center space-y-14">
+      {/* SECTION CONTACT */}
+      <section id="contact" className="py-40 px-6 md:px-20 bg-[#FDFCFB] relative overflow-hidden">
+        <div className="max-w-2xl mx-auto text-center space-y-12">
           <Reveal>
             <div className="space-y-8">
               <div className="flex items-center justify-center gap-4">
                 <div className="w-12 h-[1px] bg-stone-200" />
-                <p className="text-[9px] uppercase tracking-[0.5em] text-stone-400">Votre Histoire, Notre Atelier</p>
+                <p className="text-[9px] uppercase tracking-[0.5em] text-stone-400">{t.ctaLabel}</p>
                 <div className="w-12 h-[1px] bg-stone-200" />
               </div>
               <h3 className="text-4xl md:text-6xl font-serif font-light leading-tight">
-                Écrivez votre<br /><em className="not-italic text-shimmer">propre chapitre</em>
+                {t.ctaTitlePre}<br /><em className="not-italic text-shimmer">{t.ctaTitleEm}</em>
               </h3>
               <p className="text-stone-400 font-light text-sm max-w-lg mx-auto leading-[2]">
-                Nous avons raconté l'histoire de celles qui nous ont marquées. Confiez-nous la vôtre — et nous la cousons dans une pièce qui n'appartiendra qu'à vous.
+                {t.ctaText}
               </p>
             </div>
           </Reveal>
           <Reveal delay={200}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <button onClick={() => scrollToSection('bespoke-ai')} className="group relative overflow-hidden bg-[#1C1C1C] text-white px-14 py-5 text-[10px] uppercase tracking-[0.3em] font-medium transition-all duration-500 hover:shadow-2xl hover:shadow-[#C5A059]/20">
-                <span className="relative z-10 flex items-center gap-3 group-hover:text-black transition-colors duration-500">
-                  <Sparkles size={14} /> Atelier Virtuel IA
-                </span>
-                <div className="absolute inset-0 bg-[#C5A059] translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-              </button>
-              <a href="mailto:info@ameliaruby.com" className="group border border-stone-300 px-14 py-5 text-[10px] uppercase tracking-[0.3em] font-medium text-stone-600 transition-all duration-500 hover:border-[#C5A059] hover:text-[#C5A059] flex items-center gap-3">
-                <Mail size={14} /> Prendre Contact
-              </a>
-            </div>
+            <form onSubmit={handleContactSubmit} className="text-left space-y-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label htmlFor="contact-name" className="text-[9px] uppercase tracking-[0.3em] text-stone-500 font-medium">{t.contactName}</label>
+                  <input
+                    id="contact-name"
+                    type="text"
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder={t.contactNamePh}
+                    required
+                    className="w-full bg-transparent border-b border-stone-300 focus:border-[#C5A059] py-3 text-sm font-light outline-none transition-colors placeholder:text-stone-300"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="contact-email" className="text-[9px] uppercase tracking-[0.3em] text-stone-500 font-medium">{t.contactEmail}</label>
+                  <input
+                    id="contact-email"
+                    type="email"
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder={t.contactEmailPh}
+                    required
+                    className="w-full bg-transparent border-b border-stone-300 focus:border-[#C5A059] py-3 text-sm font-light outline-none transition-colors placeholder:text-stone-300"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="contact-message" className="text-[9px] uppercase tracking-[0.3em] text-stone-500 font-medium">{t.contactMessage}</label>
+                <textarea
+                  id="contact-message"
+                  value={contactForm.message}
+                  onChange={(e) => setContactForm(prev => ({ ...prev, message: e.target.value }))}
+                  placeholder={t.contactMessagePh}
+                  required
+                  rows={4}
+                  className="w-full bg-transparent border-b border-stone-300 focus:border-[#C5A059] py-3 text-sm font-light outline-none transition-colors resize-none placeholder:text-stone-300"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 text-stone-400">
+                <Clock size={13} className="text-[#C5A059]" />
+                <span className="text-[9px] uppercase tracking-[0.3em] font-light">{t.contactDelay}</span>
+              </div>
+
+              {contactFeedback && (
+                <p className={`text-[11px] tracking-wide font-light ${contactStatus === 'success' ? 'text-[#C5A059]' : 'text-red-600'}`}>
+                  {contactFeedback}
+                </p>
+              )}
+
+              <div className="pt-2 flex justify-center">
+                <button
+                  type="submit"
+                  disabled={contactStatus === 'sending'}
+                  className="group relative overflow-hidden bg-[#1C1C1C] text-white px-14 py-5 text-[10px] uppercase tracking-[0.3em] font-medium transition-all duration-500 hover:shadow-2xl hover:shadow-[#C5A059]/20 disabled:opacity-60 flex items-center justify-center gap-3"
+                >
+                  <span className="relative z-10 flex items-center gap-3 group-hover:text-black transition-colors duration-500">
+                    {contactStatus === 'sending'
+                      ? <><Loader2 size={14} className="animate-spin" /> {t.contactSending}</>
+                      : <><Mail size={14} /> {t.contactSend}</>}
+                  </span>
+                  <div className="absolute inset-0 bg-[#C5A059] translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                </button>
+              </div>
+            </form>
           </Reveal>
         </div>
       </section>
@@ -2629,10 +3039,10 @@ export default function App() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16 pb-20 border-b border-white/5">
             <div className="space-y-6">
               <h5 className="text-white font-serif text-4xl tracking-widest leading-none">Amélia<br/>Ruby</h5>
-              <p className="text-[10px] uppercase tracking-[0.4em] font-light leading-relaxed">Maison de Haute Maroquinerie<br/>Montréal, Québec</p>
+              <p className="text-[10px] uppercase tracking-[0.4em] font-light leading-relaxed">{t.footerTagline}<br/>{t.footerCity}</p>
               <div className="flex items-center gap-3 pt-2">
                 <div className="w-4 h-[1px] bg-[#C5A059]" />
-                <span className="text-[8px] uppercase tracking-[0.3em] text-[#C5A059]/60">Artisan certifié</span>
+                <span className="text-[8px] uppercase tracking-[0.3em] text-[#C5A059]/60">{t.footerCertified}</span>
               </div>
               <div className="flex items-center gap-4 pt-3">
                 <a
@@ -2662,32 +3072,32 @@ export default function App() {
               </div>
             </div>
             <div className="space-y-6">
-              <p className="text-[9px] uppercase tracking-[0.4em] text-white/20 font-medium">Navigation</p>
+              <p className="text-[9px] uppercase tracking-[0.4em] text-white/20 font-medium">{t.footerNav}</p>
               <div className="space-y-4">
-                <button onClick={() => window.scrollTo({top:0,behavior:'smooth'})} className="block text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">Collection</button>
-                <button onClick={() => scrollToSection('bespoke-ai')} className="block text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">Atelier IA Sur Mesure</button>
+                <button onClick={() => window.scrollTo({top:0,behavior:'smooth'})} className="block text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">{t.navCollection}</button>
+                <button onClick={() => scrollToSection('bespoke-ai')} className="block text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">{t.footerAiAtelier}</button>
                 <a href="https://www.instagram.com/ameliarubyofficial/" target="_blank" rel="noopener noreferrer" className="block text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">Instagram</a>
               </div>
             </div>
             <div className="space-y-6">
-              <p className="text-[9px] uppercase tracking-[0.4em] text-white/20 font-medium">Contact</p>
+              <p className="text-[9px] uppercase tracking-[0.4em] text-white/20 font-medium">{t.footerContact}</p>
               <div className="space-y-4">
                 <a href="mailto:info@ameliaruby.com" className="block text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">info@ameliaruby.com</a>
-                <p className="text-[10px] uppercase tracking-[0.3em] font-light">Montréal, Québec</p>
-                <button onClick={() => setView('admin')} className="text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">Accès Atelier Privé</button>
+                <p className="text-[10px] uppercase tracking-[0.3em] font-light">{t.footerCity}</p>
+                <button onClick={() => setView('admin')} className="text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">{t.footerPrivateAccess}</button>
               </div>
             </div>
           </div>
           <div className="pt-10 flex flex-col md:flex-row justify-between items-center gap-4 text-center">
-            <p className="text-[8px] uppercase tracking-[0.3em] font-light text-stone-700">© 2026 — Maison Amélia Ruby — Tous droits réservés</p>
+            <p className="text-[8px] uppercase tracking-[0.3em] font-light text-stone-700">{t.footerRights}</p>
             <div className="flex items-center gap-3">
               <div className="w-4 h-[1px] bg-white/10" />
-              <p className="text-[8px] uppercase tracking-[0.3em] font-light text-stone-700">Fait avec soin à Montréal</p>
+              <p className="text-[8px] uppercase tracking-[0.3em] font-light text-stone-700">{t.footerMade}</p>
               <div className="w-4 h-[1px] bg-white/10" />
             </div>
           </div>
           <div className="pt-6 text-center">
-            <a href="https://lavoiedigital.ca" target="_blank" rel="noopener noreferrer" className="text-[8px] uppercase tracking-[0.3em] font-light text-stone-700 hover:text-[#C5A059] transition-colors">Création de Lavoie Digital</a>
+            <a href="https://lavoiedigital.ca" target="_blank" rel="noopener noreferrer" className="text-[8px] uppercase tracking-[0.3em] font-light text-stone-700 hover:text-[#C5A059] transition-colors">{t.footerCredit}</a>
           </div>
         </div>
       </footer>

@@ -10,9 +10,30 @@ export default function SuccessPage() {
 
   // Petite animation d'apparition
   const [isVisible, setIsVisible] = React.useState(false);
+  const [lang, setLang] = React.useState<'fr' | 'en'>('fr');
   useEffect(() => {
     setIsVisible(true);
+    try {
+      const stored = localStorage.getItem('ar-lang');
+      if (stored === 'fr' || stored === 'en') setLang(stored);
+    } catch {}
   }, []);
+
+  const t = lang === 'en'
+    ? {
+        title: 'Order Confirmed',
+        text: 'Thank you for your trust. Your transaction has been processed successfully. The atelier is preparing your piece with the greatest care. You will soon receive an email with the shipping details.',
+        back: 'Back to the collection',
+        rights: '© 2024 — Maison Amélia Ruby • Atelier Bordeaux',
+        credit: 'Created by Lavoie Digital',
+      }
+    : {
+        title: 'Commande Confirmée',
+        text: "Merci pour votre confiance. Votre transaction a été traitée avec succès. L'atelier prépare votre pièce avec le plus grand soin. Vous recevrez très prochainement un email avec les détails de l'expédition.",
+        back: 'Retour à la collection',
+        rights: '© 2024 — Maison Amélia Ruby • Atelier Bordeaux',
+        credit: 'Création de Lavoie Digital',
+      };
 
   return (
     <div className="min-h-screen bg-[#FDFCFB] text-[#1C1C1C] font-sans flex flex-col selection:bg-[#C5A059] selection:text-white">
@@ -33,21 +54,20 @@ export default function SuccessPage() {
           </div>
           
           <h2 className="text-4xl md:text-5xl font-serif leading-tight mb-4">
-            Commande Confirmée
+            {t.title}
           </h2>
-          
+
           <div className="w-12 h-px bg-[#C5A059] mx-auto opacity-50 mb-6"></div>
-          
+
           <p className="text-stone-500 font-light mb-12 max-w-md mx-auto leading-relaxed">
-            Merci pour votre confiance. Votre transaction a été traitée avec succès. 
-            L'atelier prépare votre pièce avec le plus grand soin. Vous recevrez très prochainement un email avec les détails de l'expédition.
+            {t.text}
           </p>
-          
-          <a 
-            href="/" 
+
+          <a
+            href="/"
             className="bg-[#1C1C1C] text-white px-10 py-5 text-[10px] uppercase tracking-[0.3em] font-medium hover:bg-[#C5A059] transition-all shadow-lg flex items-center gap-3"
           >
-            <ArrowLeft size={14} /> Retour à la collection
+            <ArrowLeft size={14} /> {t.back}
           </a>
         </div>
         
@@ -56,10 +76,10 @@ export default function SuccessPage() {
       {/* FOOTER MINIMAL */}
       <footer className="py-8 text-center border-t border-stone-100 space-y-3">
         <p className="text-[9px] uppercase tracking-[0.3em] font-light text-stone-400">
-          © 2024 — Maison Amélia Ruby • Atelier Bordeaux
+          {t.rights}
         </p>
         <a href="https://lavoiedigital.ca" target="_blank" rel="noopener noreferrer" className="inline-block text-[9px] uppercase tracking-[0.3em] font-light text-stone-400 hover:text-stone-600 transition-colors">
-          Création de Lavoie Digital
+          {t.credit}
         </a>
       </footer>
 
