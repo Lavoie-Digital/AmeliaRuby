@@ -43,6 +43,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia' as any,
 });
 
+// Adresse qui reçoit les notifications de nouvelles commandes (propriétaire).
+const OWNER_EMAIL = process.env.ORDER_NOTIFICATION_EMAIL || 'info@ameliaruby.com';
+
+// Échappe le HTML pour éviter toute injection via les champs saisis par le client.
+function escapeHtml(str: any): string {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
@@ -179,6 +192,83 @@ export async function POST(req: Request) {
           console.log(`✅ Courriel envoyé avec succès à ${customerEmail}`);
         } catch (emailError: any) {
           console.error("❌ ERREUR lors de l'envoi du courriel SendGrid:", emailError.message);
+        }
+
+        // --- NOTIFICATION DE COMMANDE À LA PROPRIÉTAIRE ---
+        try {
+          console.log(`🔔 Notification de nouvelle commande à ${OWNER_EMAIL}...`);
+
+          const modeLabel = session.livemode ? '' : ' [TEST]';
+          const dateStr = new Date().toLocaleString('fr-CA', { timeZone: 'America/Toronto' });
+
+          const addressBlock = shippingAddress
+            ? `
+              <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #a8a29e; margin: 0 0 6px 0;">Adresse de livraison</p>
+              <p style="font-size: 15px; margin: 0 0 18px 0; line-height: 1.6;">
+                ${escapeHtml(shippingName)}<br />
+                ${escapeHtml(shippingAddress.line1 || '')}${shippingAddress.line2 ? '<br />' + escapeHtml(shippingAddress.line2) : ''}<br />
+                ${escapeHtml(shippingAddress.city || '')} ${escapeHtml(shippingAddress.state || '')} ${escapeHtml(shippingAddress.postal_code || '')}<br />
+                ${escapeHtml(shippingAddress.country || '')}
+              </p>`
+            : `<p style="font-size: 13px; color: #b91c1c; margin: 0 0 18px 0;">Aucune adresse de livraison fournie.</p>`;
+
+          const ownerHtml = `
+            <div style="font-family: 'Times New Roman', serif; max-width: 600px; margin: auto; padding: 40px 20px; color: #1C1C1C; background-color: #ffffff; border: 1px solid #f0f0f0;">
+              <div style="text-align: center;">
+                <h1 style="text-transform: uppercase; letter-spacing: 6px; font-weight: 300; font-size: 22px; margin-bottom: 8px;">Amélia Ruby</h1>
+                <p style="text-transform: uppercase; letter-spacing: 3px; font-size: 10px; color: #999999; margin-bottom: 24px;">Nouvelle commande${modeLabel}</p>
+                <div style="height: 1px; background-color: #C5A059; width: 50px; margin: 0 auto 30px auto;"></div>
+              </div>
+
+              <div style="text-align: center; margin-bottom: 30px;">
+                <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #a8a29e; margin: 0 0 6px 0;">Montant total (taxes incl.)</p>
+                <p style="font-size: 30px; margin: 0; color: #C5A059; font-weight: bold;">${amount.toFixed(2)} $ CAD</p>
+                <p style="font-size: 11px; color: #999; margin: 8px 0 0 0;">${escapeHtml(dateStr)}</p>
+              </div>
+
+              <div style="background-color: #FDFCFB; padding: 24px; border: 1px solid #F0F0F0; margin-bottom: 24px;">
+                <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #a8a29e; margin: 0 0 6px 0;">Produits</p>
+                <p style="font-size: 16px; margin: 0 0 18px 0; line-height: 1.6;">${escapeHtml(produits) || '—'}</p>
+
+                <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #a8a29e; margin: 0 0 6px 0;">Client</p>
+                <p style="font-size: 15px; margin: 0 0 4px 0;">${escapeHtml(customerName)}</p>
+                <p style="font-size: 15px; margin: 0 0 4px 0; color: #C5A059;">${escapeHtml(customerEmail)}</p>
+                <p style="font-size: 15px; margin: 0 0 18px 0;">${customerPhone ? escapeHtml(customerPhone) : 'Aucun téléphone fourni'}</p>
+
+                ${addressBlock}
+              </div>
+
+              <p style="font-size: 11px; color: #999; text-align: center; margin: 0;">N° de commande : ${escapeHtml(session.id)}</p>
+              <div style="border-top: 1px solid #f8f8f8; padding-top: 20px; margin-top: 30px; text-align: center;">
+                <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #cccccc;">Montréal — Québec</p>
+              </div>
+            </div>
+          `;
+
+          const ownerText =
+            `Nouvelle commande${modeLabel}\n\n` +
+            `Montant : ${amount.toFixed(2)} $ CAD (taxes incl.)\n` +
+            `Date : ${dateStr}\n\n` +
+            `Produits : ${produits || '—'}\n\n` +
+            `Client : ${customerName}\n` +
+            `Courriel : ${customerEmail}\n` +
+            `Téléphone : ${customerPhone || 'Aucun'}\n\n` +
+            (shippingAddress
+              ? `Livraison :\n${shippingName}\n${shippingAddress.line1 || ''}\n${shippingAddress.line2 ? shippingAddress.line2 + '\n' : ''}${shippingAddress.city || ''} ${shippingAddress.state || ''} ${shippingAddress.postal_code || ''}\n${shippingAddress.country || ''}\n\n`
+              : 'Aucune adresse de livraison fournie.\n\n') +
+            `N° de commande : ${session.id}`;
+
+          await sgMail.send({
+            to: OWNER_EMAIL,
+            from: { email: 'info@ameliaruby.com', name: 'Boutique Amélia Ruby' },
+            replyTo: customerEmail,
+            subject: `🛍️ Nouvelle commande${modeLabel} — ${amount.toFixed(2)} $ — ${customerName}`,
+            text: ownerText,
+            html: ownerHtml,
+          });
+          console.log(`✅ Notification de commande envoyée à ${OWNER_EMAIL}`);
+        } catch (ownerEmailError: any) {
+          console.error("❌ ERREUR lors de l'envoi de la notification de commande:", ownerEmailError.message);
         }
 
       } catch (error: any) {

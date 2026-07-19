@@ -48,3 +48,7 @@ export function inventoryCollection(db: Firestore) {
 export function trackingsCollection(db: Firestore) {
   return db.collection('artifacts').doc(getAppId()).collection('public').doc('data').collection('trackings');
 }
+
+export function retailersCollection(db: Firestore) {
+  return db.collection('artifacts').doc(getAppId()).collection('public').doc('data').collection('retailers');
+}

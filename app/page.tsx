@@ -153,8 +153,9 @@ const inspirations = [
   { name: 'Karine MC', src: '/femme-5.jpeg', bag: 'Sac Karine MC', bagEn: 'Karine MC Bag', story: "Le sac Karine MC se distingue par son cuir noir lisse, sa structure moderne et sa poignée arquée au style affirmé. Son design compact est aussi pratique qu’élégant grâce à ses deux fermetures éclair, qui permettent une ouverture de chaque côté pour un accès facile et bien organisé. Son fini noir brillant, ses détails dorés et son logo embossé lui donnent une allure sobre, raffinée et intemporelle. Karine MC, un sac chic, pratique et structuré, pensé pour accompagner chaque moment avec distinction.", storyEn: "The Karine MC bag stands out with its smooth black leather, modern structure and boldly styled arched handle. Its compact design is as practical as it is elegant thanks to its two zippers, which open on each side for easy, well-organised access. Its glossy black finish, golden details and embossed logo give it an understated, refined and timeless allure. Karine MC — a chic, practical and structured bag, designed to accompany every moment with distinction." },
 ];
 
-// Points de vente — boutiques partenaires (logos dans /public)
-const retailers = [
+// Points de vente — boutiques partenaires par défaut (repli si aucune boutique n'a été
+// enregistrée dans l'espace admin). Logos dans /public.
+const defaultRetailers = [
   { name: 'Salon Uforia', logo: "/Salon%20uforia.jpg", url: 'https://www.facebook.com/uforiasaloncoiffure' },
   { name: "Boutique l'effet Bulle", logo: "/Boutique%20l%27effet%20bulle.png", url: 'https://www.facebook.com/Boutiqueleffetbulles' },
   { name: 'Simplement Celyne', logo: "/simplement%20celyne.jpg", url: 'https://www.facebook.com/profile.php?id=100064620854240' },
@@ -399,7 +400,7 @@ export default function App() {
     try { localStorage.setItem('ar-lang', lang); } catch {}
     if (typeof document !== 'undefined') document.documentElement.lang = lang;
   }, [lang]);
-  const [adminTab, setAdminTab] = useState<'inventory' | 'clients' | 'promos'>('inventory');
+  const [adminTab, setAdminTab] = useState<'inventory' | 'clients' | 'promos' | 'boutiques'>('inventory');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [adminSessionPassword, setAdminSessionPassword] = useState('');
@@ -416,6 +417,14 @@ export default function App() {
   
   const [user, setUser] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
+  // Boutiques / points de vente (temps réel depuis Firestore)
+  const [retailers, setRetailers] = useState<any[]>([]);
+  const [newRetailer, setNewRetailer] = useState({ name: '', url: '', logo: '' });
+  const [editingRetailer, setEditingRetailer] = useState<any | null>(null);
+  const [isSavingRetailer, setIsSavingRetailer] = useState(false);
+  const [isSeedingRetailers, setIsSeedingRetailers] = useState(false);
+  const [isUploadingRetailerLogo, setIsUploadingRetailerLogo] = useState(false);
+  const [retailerFormError, setRetailerFormError] = useState('');
   const [clients, setClients] = useState<any[]>([]);
   const [trackings, setTrackings] = useState<any[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
@@ -560,6 +569,22 @@ export default function App() {
     });
 
     return () => { unsubInv(); };
+  }, [user]);
+
+  // 3b. FETCH BOUTIQUES / POINTS DE VENTE (lecture publique en temps réel)
+  useEffect(() => {
+    if (!user) return;
+
+    const qRet = collection(db, 'artifacts', appId, 'public', 'data', 'retailers');
+    const unsubRet = onSnapshot(qRet, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      data.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+      setRetailers(data);
+    }, (err) => {
+      console.error(err);
+    });
+
+    return () => { unsubRet(); };
   }, [user]);
 
   // Charger les codes promo quand l'onglet est ouvert
@@ -947,6 +972,96 @@ export default function App() {
     } catch (err) { console.error('Delete error', err); }
   };
 
+  // ─── BOUTIQUES / POINTS DE VENTE ───────────────────────────────
+  const handleRetailerLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingRetailerLogo(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (editingRetailer) {
+        setEditingRetailer({ ...editingRetailer, logo: base64 });
+      } else {
+        setNewRetailer({ ...newRetailer, logo: base64 });
+      }
+      setIsUploadingRetailerLogo(false);
+    };
+    reader.onerror = () => setIsUploadingRetailerLogo(false);
+    reader.readAsDataURL(file);
+  };
+
+  const saveRetailer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminSessionPassword) return;
+    setRetailerFormError('');
+
+    const source = editingRetailer || newRetailer;
+    if (!source.name?.trim()) {
+      setRetailerFormError('Le nom de la boutique est requis.');
+      return;
+    }
+
+    setIsSavingRetailer(true);
+    try {
+      if (editingRetailer) {
+        const { id, ...updates } = editingRetailer;
+        const res = await fetch(`/api/admin/retailers/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-admin-password': adminSessionPassword },
+          body: JSON.stringify(updates),
+        });
+        if (!res.ok) throw new Error('Erreur sauvegarde');
+        setEditingRetailer(null);
+      } else {
+        const res = await fetch('/api/admin/retailers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-password': adminSessionPassword },
+          body: JSON.stringify({ ...newRetailer, order: retailers.length }),
+        });
+        if (!res.ok) throw new Error('Erreur création');
+        setNewRetailer({ name: '', url: '', logo: '' });
+      }
+    } catch (err) {
+      console.error('Save retailer error', err);
+      setRetailerFormError("Une erreur est survenue. Réessayez.");
+    } finally {
+      setIsSavingRetailer(false);
+    }
+  };
+
+  const deleteRetailer = async (id: string) => {
+    if (!confirm('Retirer cette boutique de la liste ?')) return;
+    try {
+      const res = await fetch(`/api/admin/retailers/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': adminSessionPassword },
+      });
+      if (!res.ok) throw new Error('Erreur suppression');
+      if (editingRetailer?.id === id) setEditingRetailer(null);
+    } catch (err) { console.error('Delete retailer error', err); }
+  };
+
+  // Migration : importe dans Firestore les boutiques déjà affichées sur le site
+  const seedDefaultRetailers = async () => {
+    if (!adminSessionPassword) return;
+    setIsSeedingRetailers(true);
+    try {
+      for (let i = 0; i < defaultRetailers.length; i++) {
+        const r = defaultRetailers[i];
+        await fetch('/api/admin/retailers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-password': adminSessionPassword },
+          body: JSON.stringify({ ...r, order: i }),
+        });
+      }
+    } catch (err) {
+      console.error('Seed retailers error', err);
+    } finally {
+      setIsSeedingRetailers(false);
+    }
+  };
+
   const sendTrackingEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trackingForm.commandeId || !adminSessionPassword) return;
@@ -1211,6 +1326,12 @@ export default function App() {
                   className={`text-[10px] uppercase tracking-widest pb-2 border-b-2 transition-all ${adminTab === 'promos' ? 'border-[#C5A059] text-black' : 'border-transparent text-stone-400'}`}
                 >
                   Codes Promo
+                </button>
+                <button
+                  onClick={() => setAdminTab('boutiques')}
+                  className={`text-[10px] uppercase tracking-widest pb-2 border-b-2 transition-all ${adminTab === 'boutiques' ? 'border-[#C5A059] text-black' : 'border-transparent text-stone-400'}`}
+                >
+                  Boutiques
                 </button>
               </div>
             </div>
@@ -1861,7 +1982,7 @@ export default function App() {
               </div>
 
             </div>
-          ) : (
+          ) : adminTab === 'promos' ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 animate-in fade-in duration-500">
 
               {/* COLONNE GAUCHE : FORMULAIRE NOUVEAU CODE */}
@@ -2013,6 +2134,160 @@ export default function App() {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 animate-in fade-in duration-500">
+
+              {/* COLONNE GAUCHE : FORMULAIRE BOUTIQUE */}
+              <div className="lg:col-span-5">
+                <form onSubmit={saveRetailer} className="bg-white p-8 shadow-sm border border-stone-100 space-y-6 sticky top-12 rounded-sm">
+                  <h3 className="font-serif text-xl border-b pb-4 flex items-center gap-2">
+                    {editingRetailer ? <Settings size={18}/> : <PlusCircle size={18}/>}
+                    {editingRetailer ? 'Modifier la boutique' : 'Ajouter une boutique'}
+                  </h3>
+                  <p className="text-[11px] text-stone-400 font-light leading-relaxed -mt-2">
+                    Ajoutez les boutiques et points de vente où vos sacs sont disponibles. Elles s&apos;affichent automatiquement dans la section « Disponible en boutique » du site.
+                  </p>
+
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-stone-500 block mb-2">Nom de la boutique *</label>
+                    <input
+                      type="text"
+                      value={editingRetailer ? editingRetailer.name : newRetailer.name}
+                      onChange={e => editingRetailer ? setEditingRetailer({ ...editingRetailer, name: e.target.value }) : setNewRetailer({ ...newRetailer, name: e.target.value })}
+                      placeholder="Ex : Salon Uforia"
+                      className="w-full border border-stone-200 px-4 py-3 text-sm font-light outline-none focus:border-[#C5A059] transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-stone-500 block mb-2">Lien (Facebook, site web…)</label>
+                    <input
+                      type="url"
+                      value={editingRetailer ? (editingRetailer.url || '') : newRetailer.url}
+                      onChange={e => editingRetailer ? setEditingRetailer({ ...editingRetailer, url: e.target.value }) : setNewRetailer({ ...newRetailer, url: e.target.value })}
+                      placeholder="https://www.facebook.com/..."
+                      className="w-full border border-stone-200 px-4 py-3 text-sm font-light outline-none focus:border-[#C5A059] transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-stone-500 block mb-2">Logo / photo</label>
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-20 flex-shrink-0 border border-stone-200 rounded-sm bg-stone-50 flex items-center justify-center overflow-hidden">
+                        {(editingRetailer ? editingRetailer.logo : newRetailer.logo) ? (
+                          <img src={editingRetailer ? editingRetailer.logo : newRetailer.logo} alt="Aperçu" className="w-full h-full object-contain p-1" />
+                        ) : (
+                          <Package size={20} className="text-stone-300" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <label className="cursor-pointer inline-flex items-center gap-2 border border-stone-200 px-4 py-2 text-[10px] uppercase tracking-widest hover:border-[#C5A059] transition-colors">
+                          {isUploadingRetailerLogo ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>}
+                          {isUploadingRetailerLogo ? 'Chargement…' : 'Téléverser'}
+                          <input type="file" accept="image/*" onChange={handleRetailerLogoChange} className="hidden" />
+                        </label>
+                        {(editingRetailer ? editingRetailer.logo : newRetailer.logo) && (
+                          <button
+                            type="button"
+                            onClick={() => editingRetailer ? setEditingRetailer({ ...editingRetailer, logo: '' }) : setNewRetailer({ ...newRetailer, logo: '' })}
+                            className="block text-[10px] uppercase tracking-widest text-stone-400 hover:text-red-700 transition-colors"
+                          >
+                            Retirer le logo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {retailerFormError && <p className="text-red-600 text-xs">{retailerFormError}</p>}
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={isSavingRetailer}
+                      className="flex-1 bg-stone-900 text-white py-3 text-[10px] uppercase tracking-widest hover:bg-[#C5A059] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isSavingRetailer && <Loader2 size={14} className="animate-spin"/>}
+                      {editingRetailer ? 'Enregistrer' : 'Ajouter la boutique'}
+                    </button>
+                    {editingRetailer && (
+                      <button
+                        type="button"
+                        onClick={() => { setEditingRetailer(null); setRetailerFormError(''); }}
+                        className="px-6 py-3 text-[10px] uppercase tracking-widest border border-stone-200 hover:bg-stone-50 transition-all"
+                      >
+                        Annuler
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              {/* COLONNE DROITE : LISTE DES BOUTIQUES */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <h3 className="font-serif text-xl flex items-center gap-2"><LayoutGrid size={18}/> Boutiques ({retailers.length})</h3>
+                  {retailers.length === 0 && (
+                    <button
+                      onClick={seedDefaultRetailers}
+                      disabled={isSeedingRetailers}
+                      className="inline-flex items-center gap-2 bg-[#C5A059] text-white px-4 py-2 text-[10px] uppercase tracking-widest hover:bg-stone-900 transition-all disabled:opacity-50"
+                    >
+                      {isSeedingRetailers ? <Loader2 size={14} className="animate-spin"/> : <Download size={14}/>}
+                      Importer les boutiques actuelles
+                    </button>
+                  )}
+                </div>
+
+                {retailers.length === 0 ? (
+                  <div className="bg-white border border-dashed border-stone-200 p-10 text-center rounded-sm">
+                    <p className="text-sm text-stone-400 font-light">Aucune boutique enregistrée pour l&apos;instant.</p>
+                    <p className="text-xs text-stone-400 font-light mt-2">
+                      Cliquez sur « Importer les boutiques actuelles » pour récupérer les {defaultRetailers.length} boutiques déjà affichées sur le site, puis modifiez-les à votre guise.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {retailers.map((shop) => (
+                      <div key={shop.id} className="bg-white border border-stone-100 shadow-sm rounded-sm p-4 flex items-center gap-4">
+                        <div className="w-16 h-16 flex-shrink-0 border border-stone-100 rounded-sm bg-stone-50 flex items-center justify-center overflow-hidden">
+                          {shop.logo ? (
+                            <img src={shop.logo} alt={shop.name} className="w-full h-full object-contain p-1" />
+                          ) : (
+                            <Package size={18} className="text-stone-300" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-serif text-base text-stone-900 truncate">{shop.name}</h4>
+                          {shop.url && (
+                            <a href={shop.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-stone-400 hover:text-[#C5A059] transition-colors truncate block">
+                              {shop.url}
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => { setEditingRetailer(shop); setRetailerFormError(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            className="p-2 text-stone-400 hover:text-[#C5A059] transition-colors"
+                            aria-label="Modifier"
+                          >
+                            <Settings size={16}/>
+                          </button>
+                          <button
+                            onClick={() => deleteRetailer(shop.id)}
+                            className="p-2 text-stone-400 hover:text-red-700 transition-colors"
+                            aria-label="Supprimer"
+                          >
+                            <Trash2 size={16}/>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -2567,22 +2842,26 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-            {retailers.map((shop, i) => (
-              <Reveal key={shop.name} delay={i * 100}>
+            {(retailers.length > 0 ? retailers : defaultRetailers).map((shop, i) => (
+              <Reveal key={shop.id || shop.name} delay={i * 100}>
                 <a
-                  href={shop.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={shop.url || undefined}
+                  target={shop.url ? '_blank' : undefined}
+                  rel={shop.url ? 'noopener noreferrer' : undefined}
                   aria-label={`${shop.name} — ${t.retailersVisit}`}
                   className="group flex flex-col items-center text-center bg-white border border-stone-100 rounded-sm p-6 md:p-8 shadow-sm hover:shadow-xl hover:border-[#C5A059]/40 transition-all duration-500 h-full"
                 >
-                  <div className="w-full aspect-square flex items-center justify-center overflow-hidden mb-5">
-                    <img
-                      src={shop.logo}
-                      alt={shop.name}
-                      className="max-w-full max-h-full w-auto h-auto object-contain grayscale-[15%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.2'; }}
-                    />
+                  <div className="w-full aspect-square flex items-center justify-center overflow-hidden mb-5 bg-white rounded-sm">
+                    {shop.logo ? (
+                      <img
+                        src={shop.logo}
+                        alt={shop.name}
+                        className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-700"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.2'; }}
+                      />
+                    ) : (
+                      <ShoppingBag size={40} strokeWidth={1} className="text-stone-200" />
+                    )}
                   </div>
                   <h4 className="font-serif text-base md:text-lg text-stone-900 leading-tight">{shop.name}</h4>
                   <span className="mt-3 inline-flex items-center gap-1.5 text-[8px] uppercase tracking-[0.3em] text-stone-400 group-hover:text-[#C5A059] transition-colors">
