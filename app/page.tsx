@@ -156,9 +156,9 @@ const inspirations = [
 // Points de vente — boutiques partenaires par défaut (repli si aucune boutique n'a été
 // enregistrée dans l'espace admin). Logos dans /public.
 const defaultRetailers = [
-  { name: 'Salon Uforia', logo: "/Salon%20uforia.jpg", url: 'https://www.facebook.com/uforiasaloncoiffure' },
-  { name: "Boutique l'effet Bulle", logo: "/Boutique%20l%27effet%20bulle.png", url: 'https://www.facebook.com/Boutiqueleffetbulles' },
-  { name: 'Simplement Celyne', logo: "/simplement%20celyne.jpg", url: 'https://www.facebook.com/profile.php?id=100064620854240' },
+  { name: 'Salon Uforia', logo: "/salon-uforia.jpg", url: 'https://www.facebook.com/uforiasaloncoiffure' },
+  { name: "Boutique l'effet Bulle", logo: "/boutique-leffet-bulle.png", url: 'https://www.facebook.com/Boutiqueleffetbulles' },
+  { name: 'Simplement Celyne', logo: "/simplement-celyne.jpg", url: 'https://www.facebook.com/profile.php?id=100064620854240' },
   { name: 'Aberdeen Gift', logo: "/aberdeen.jpg", url: 'https://www.facebook.com/aberdeengift1' },
 ];
 
