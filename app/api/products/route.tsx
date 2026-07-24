@@ -1,47 +1,43 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { getAdminDb, inventoryCollection } from '../admin/_lib/firebase';
 
-// Désactive la mise en cache pour toujours avoir le bon stock affiché
-export const dynamic = 'force-dynamic'; 
+// Désactive la mise en cache pour toujours afficher le bon stock.
+export const dynamic = 'force-dynamic';
 
+const FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=1200&auto=format&fit=crop';
+
+/**
+ * Catalogue produits — source de vérité : Firestore (collection `inventory`).
+ * (Auparavant lu depuis Stripe; la boutique lit déjà Firestore en temps réel,
+ * cette route reste disponible pour un usage serveur/externe.)
+ */
 export async function GET() {
   try {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey) return NextResponse.json({ error: "Clé manquante" }, { status: 500 });
-    
-    // Assure-toi d'utiliser la même version d'API que pour ton checkout
-    const stripe = new Stripe(stripeKey, { apiVersion: '2026-03-25.dahlia' as any });
+    const db = getAdminDb();
+    const snap = await inventoryCollection(db).get();
 
-    // Récupère uniquement les produits actifs avec leurs prix par défaut
-    const products = await stripe.products.list({
-      active: true,
-      expand: ['data.default_price'],
-    });
-
-    // Formate les données pour le frontend
-    const formattedProducts = products.data.map(product => {
-      const price = product.default_price as Stripe.Price;
+    const products = snap.docs.map((doc) => {
+      const p = doc.data() as any;
+      const price = Number(p.price) || 0;
+      const images: string[] = Array.isArray(p.images) && p.images.length > 0 ? p.images : [];
       return {
-        id: product.id,
-        priceId: price?.id, 
-        name: product.name,
-        // C'EST ICI QU'ON RÉCUPÈRE LA DESCRIPTION DE STRIPE :
-        description: product.description, 
-        price: price?.unit_amount ? price.unit_amount / 100 : 0,
-        displayPrice: price?.unit_amount ? `${price.unit_amount / 100} $` : "Prix sur demande",
-        // Au lieu de prendre seulement product.images[0], on renvoie tout le tableau d'images
-        // Et on garde 'image' pour la miniature principale (la première de la liste)
-        image: product.images[0] || "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=1200&auto=format&fit=crop",
-        images: product.images.length > 0 ? product.images : ["https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=1200&auto=format&fit=crop"],
-        // On récupère les tags depuis les métadonnées de Stripe (définies par ta cliente)
-        category: product.metadata.category || "Collection Privée",
-        tag: product.metadata.tag || ""
+        id: doc.id,
+        name: p.name || '',
+        description: p.description || '',
+        price,
+        displayPrice: price ? `${price} $` : 'Prix sur demande',
+        image: images[0] || p.image || FALLBACK_IMAGE,
+        images: images.length > 0 ? images : [p.image || FALLBACK_IMAGE],
+        category: p.category || 'Collection Privée',
+        tag: p.tag || '',
+        stockQuantity: p.stockQuantity ?? null,
       };
     });
 
-    return NextResponse.json(formattedProducts);
+    return NextResponse.json(products);
   } catch (error) {
-    console.error("Erreur récupération produits:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    console.error('Erreur récupération produits:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

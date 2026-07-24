@@ -1,13 +1,26 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { verifyAdminHeader } from '../_lib/auth';
+import { getAdminDb } from '../_lib/firebase';
 
 export const dynamic = 'force-dynamic';
 
-function getStripe() {
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) return null;
-  return new Stripe(stripeKey, { apiVersion: '2026-03-25.dahlia' as any });
+// Représentation d'un code promo telle que consommée par l'interface admin.
+// (Même contrat qu'avant la migration Stripe → conservé pour ne rien casser côté UI.)
+function formatPromo(id: string, p: any) {
+  return {
+    id,
+    code: p.code,
+    active: p.active !== false,
+    percentOff: p.percentOff ?? null,
+    amountOff: null,
+    currency: null,
+    duration: 'once',
+    maxRedemptions: p.maxRedemptions ?? null,
+    timesRedeemed: p.timesRedeemed ?? 0,
+    expiresAt: p.expiresAt ?? null,
+    createdAt: p.createdAt ?? null,
+    couponId: null,
+  };
 }
 
 export async function GET(request: Request) {
@@ -15,36 +28,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
   }
 
-  const stripe = getStripe();
-  if (!stripe) return NextResponse.json({ error: 'Configuration serveur incomplète.' }, { status: 500 });
-
   try {
-    const promoCodes = await stripe.promotionCodes.list({
-      limit: 100,
-      expand: ['data.promotion.coupon'],
-    });
-
-    const formatted = promoCodes.data
-      .filter((promo) => promo.metadata?.hidden !== 'true')
-      .map((promo) => {
-      const coupon = (promo.promotion?.coupon && typeof promo.promotion.coupon !== 'string')
-        ? promo.promotion.coupon as Stripe.Coupon
-        : null;
-      return {
-        id: promo.id,
-        code: promo.code,
-        active: promo.active,
-        percentOff: coupon?.percent_off ?? null,
-        amountOff: coupon?.amount_off ? coupon.amount_off / 100 : null,
-        currency: coupon?.currency ?? null,
-        duration: coupon?.duration ?? null,
-        maxRedemptions: promo.max_redemptions,
-        timesRedeemed: promo.times_redeemed,
-        expiresAt: promo.expires_at,
-        createdAt: promo.created,
-        couponId: coupon?.id ?? null,
-      };
-    });
+    const db = getAdminDb();
+    const snap = await db.collection('promoCodes').get();
+    const formatted = snap.docs
+      .map((doc) => ({ id: doc.id, data: doc.data() }))
+      .filter(({ data }) => data.hidden !== true)
+      .map(({ id, data }) => formatPromo(id, data))
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 
     return NextResponse.json(formatted);
   } catch (error: any) {
@@ -57,9 +48,6 @@ export async function POST(request: Request) {
   if (!verifyAdminHeader(request)) {
     return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
   }
-
-  const stripe = getStripe();
-  if (!stripe) return NextResponse.json({ error: 'Configuration serveur incomplète.' }, { status: 500 });
 
   let body: {
     code?: string;
@@ -79,41 +67,39 @@ export async function POST(request: Request) {
   if (!code || code.length < 3) {
     return NextResponse.json({ error: 'Le code doit contenir au moins 3 caractères.' }, { status: 400 });
   }
+  // Le code sert d'ID de document Firestore : caractères sûrs uniquement.
+  if (!/^[A-Z0-9_-]+$/.test(code)) {
+    return NextResponse.json({ error: 'Le code ne peut contenir que lettres, chiffres, tirets et soulignés.' }, { status: 400 });
+  }
   if (!Number.isFinite(percentOff) || percentOff <= 0 || percentOff > 100) {
     return NextResponse.json({ error: 'Le pourcentage doit être entre 1 et 100.' }, { status: 400 });
   }
 
   try {
-    const coupon = await stripe.coupons.create({
-      percent_off: percentOff,
-      duration: 'once',
-      name: code,
-    });
+    const db = getAdminDb();
+    const ref = db.collection('promoCodes').doc(code);
 
-    const promotionCodeParams: Stripe.PromotionCodeCreateParams = {
-      promotion: { type: 'coupon', coupon: coupon.id },
+    const existing = await ref.get();
+    if (existing.exists && existing.data()?.hidden !== true) {
+      return NextResponse.json({ error: 'Ce code existe déjà.' }, { status: 409 });
+    }
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const data: any = {
       code,
+      percentOff,
+      active: true,
+      hidden: false,
+      timesRedeemed: 0,
+      maxRedemptions:
+        body.maxRedemptions && Number(body.maxRedemptions) > 0 ? Math.floor(Number(body.maxRedemptions)) : null,
+      expiresAt: body.expiresAt && Number(body.expiresAt) > nowSec ? Math.floor(Number(body.expiresAt)) : null,
+      createdAt: nowSec,
     };
 
-    if (body.maxRedemptions && Number(body.maxRedemptions) > 0) {
-      promotionCodeParams.max_redemptions = Math.floor(Number(body.maxRedemptions));
-    }
-    if (body.expiresAt && Number(body.expiresAt) > Math.floor(Date.now() / 1000)) {
-      promotionCodeParams.expires_at = Math.floor(Number(body.expiresAt));
-    }
+    await ref.set(data);
 
-    const promo = await stripe.promotionCodes.create(promotionCodeParams);
-
-    return NextResponse.json({
-      id: promo.id,
-      code: promo.code,
-      active: promo.active,
-      percentOff: coupon.percent_off,
-      maxRedemptions: promo.max_redemptions,
-      timesRedeemed: promo.times_redeemed,
-      expiresAt: promo.expires_at,
-      couponId: coupon.id,
-    });
+    return NextResponse.json(formatPromo(code, data));
   } catch (error: any) {
     console.error('Erreur création code promo:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

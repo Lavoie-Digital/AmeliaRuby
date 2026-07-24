@@ -16,6 +16,24 @@ import {
 } from 'firebase/firestore';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 
+// Taux de taxe (%) par province — pour l'ESTIMATION affichée au client.
+// Le montant réellement facturé est calculé côté serveur (source de vérité).
+const CLIENT_TAX_RATES: Record<string, number> = {
+  AB: 5, BC: 12, MB: 12, NB: 15, NL: 15, NS: 14, NT: 5, NU: 5,
+  ON: 13, PE: 15, QC: 14.975, SK: 11, YT: 5,
+};
+function estimateTaxRate(country: string, province: string): number {
+  const c = (country || '').trim().toUpperCase();
+  if (c && c !== 'CA' && c !== 'CANADA') return 0;
+  return CLIENT_TAX_RATES[(province || '').trim().toUpperCase()] ?? 0;
+}
+const CA_PROVINCES = [
+  ['QC', 'Québec'], ['ON', 'Ontario'], ['BC', 'Colombie-Britannique'], ['AB', 'Alberta'],
+  ['MB', 'Manitoba'], ['SK', 'Saskatchewan'], ['NS', 'Nouvelle-Écosse'], ['NB', 'Nouveau-Brunswick'],
+  ['NL', 'Terre-Neuve-et-Labrador'], ['PE', 'Île-du-Prince-Édouard'], ['NT', 'Territoires du N.-O.'],
+  ['YT', 'Yukon'], ['NU', 'Nunavut'],
+];
+
 // Déclaration pour éviter les erreurs TypeScript
 declare const __initial_auth_token: any;
 declare const __firebase_config: any;
@@ -428,7 +446,7 @@ export default function App() {
   const [clients, setClients] = useState<any[]>([]);
   const [trackings, setTrackings] = useState<any[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
-  const [stripe, setStripe] = useState<any>(null);
+  const [squareSdkReady, setSquareSdkReady] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [heroIndex, setHeroIndex] = useState(0);
@@ -444,8 +462,17 @@ export default function App() {
   const [cart, setCart] = useState<any[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const checkoutRef = useRef<HTMLDivElement>(null);
+  // Checkout Square (Web Payments SDK)
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
+  const [orderResult, setOrderResult] = useState<{ amount: number; receiptUrl: string | null } | null>(null);
+  const [checkoutForm, setCheckoutForm] = useState({
+    name: '', email: '', phone: '',
+    line1: '', line2: '', city: '', province: 'QC', postalCode: '', country: 'CA',
+    promoCode: '',
+  });
+  const squarePaymentsRef = useRef<any>(null);
+  const squareCardRef = useRef<any>(null);
 
   // États Formulaire de contact
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
@@ -526,15 +553,17 @@ export default function App() {
     }
   }, [chatMessages, isGeneratingImage]);
 
-  // 1. CHARGEMENT DYNAMIQUE DE STRIPE
+  // 1. CHARGEMENT DYNAMIQUE DU SDK SQUARE (Web Payments)
   useEffect(() => {
+    if ((window as any).Square) { setSquareSdkReady(true); return; }
+    const env = (process.env.NEXT_PUBLIC_SQUARE_ENVIRONMENT || 'sandbox').toLowerCase();
+    const src = env === 'production'
+      ? 'https://web.squarecdn.com/v1/square.js'
+      : 'https://sandbox.web.squarecdn.com/v1/square.js';
     const script = document.createElement('script');
-    script.src = "https://js.stripe.com/v3/";
+    script.src = src;
     script.async = true;
-    script.onload = () => {
-      const stripePubKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
-      if ((window as any).Stripe) setStripe((window as any).Stripe(stripePubKey));
-    };
+    script.onload = () => setSquareSdkReady(true);
     document.body.appendChild(script);
   }, []);
 
@@ -608,28 +637,42 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, isAdminAuthenticated]);
 
-  // 4. MONTAGE DU CHECKOUT
+  // 4. INITIALISATION DU FORMULAIRE DE CARTE SQUARE
   useEffect(() => {
-    let checkoutInstance: any = null;
+    if (!showCheckout || !squareSdkReady || orderResult) return;
 
-    const mountCheckout = async () => {
-      if (clientSecret && stripe && checkoutRef.current) {
-        try {
-          checkoutInstance = await stripe.initEmbeddedCheckout({ clientSecret });
-          checkoutInstance.mount(checkoutRef.current);
-        } catch (error) {
-          console.error("Erreur lors du montage de Stripe:", error);
-        }
+    let cardInstance: any = null;
+    let cancelled = false;
+
+    const initCard = async () => {
+      const Sq = (window as any).Square;
+      if (!Sq) return;
+      const appId = process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID || '';
+      const locationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID || '';
+      if (!appId || !locationId) {
+        setCheckoutError("Configuration de paiement manquante.");
+        return;
+      }
+      try {
+        const payments = Sq.payments(appId, locationId);
+        squarePaymentsRef.current = payments;
+        cardInstance = await payments.card();
+        if (cancelled) { try { cardInstance.destroy(); } catch {} return; }
+        await cardInstance.attach('#sq-card');
+        squareCardRef.current = cardInstance;
+      } catch (error) {
+        console.error("Erreur d'initialisation Square:", error);
+        setCheckoutError("Impossible de charger le module de paiement.");
       }
     };
 
-    mountCheckout();
+    initCard();
     return () => {
-      if (checkoutInstance) {
-        checkoutInstance.destroy();
-      }
+      cancelled = true;
+      if (cardInstance) { try { cardInstance.destroy(); } catch {} }
+      squareCardRef.current = null;
     };
-  }, [clientSecret, stripe]);
+  }, [showCheckout, squareSdkReady, orderResult]);
 
   // --- LOGIQUE PANIER ---
   const addToCart = (product: any) => {
@@ -704,48 +747,76 @@ export default function App() {
 
   const removeItem = (cartItemId: string) => setCart(prev => prev.filter(i => i.cartItemId !== cartItemId));
 
-  // --- PAIEMENT ---
-  const handleCheckout = async () => {
+  // --- PAIEMENT (Square Web Payments) ---
+  // Ouvre le formulaire de paiement intégré.
+  const handleCheckout = () => {
     if (cart.length === 0) return;
+    setCheckoutError('');
+    setOrderResult(null);
+    setShowCheckout(true);
+    setIsCartOpen(false);
+  };
+
+  // Tokenise la carte via Square puis envoie le paiement au serveur.
+  const submitPayment = async () => {
+    setCheckoutError('');
+    const f = checkoutForm;
+    if (!f.name.trim() || !f.email.trim() || !f.line1.trim() || !f.city.trim() || !f.postalCode.trim() || !f.country.trim()) {
+      setCheckoutError("Veuillez remplir tous les champs requis (*).");
+      return;
+    }
+    if (!squareCardRef.current) {
+      setCheckoutError("Le formulaire de carte n'est pas encore prêt.");
+      return;
+    }
     try {
       setIsCheckingOut(true);
+      const tokenResult = await squareCardRef.current.tokenize();
+      if (tokenResult.status !== 'OK') {
+        const detail = tokenResult.errors?.[0]?.message;
+        setCheckoutError(detail || "Carte invalide. Vérifiez vos informations.");
+        return;
+      }
+
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          items: cart.map(i => ({ 
-            id: i.id, // <-- AJOUT DE L'ID ICI POUR LE WEBHOOK
-            name: i.selectedColor ? `${i.name} (${i.selectedColor})` : i.name, 
-            price: i.price, 
-            quantity: i.quantity 
-          })) 
-        })
+        body: JSON.stringify({
+          sourceId: tokenResult.token,
+          items: cart.map(i => ({
+            id: i.id,
+            name: i.selectedColor ? `${i.name} (${i.selectedColor})` : i.name,
+            price: i.price,
+            quantity: i.quantity,
+          })),
+          customer: { name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim() },
+          shipping: {
+            line1: f.line1.trim(), line2: f.line2.trim(), city: f.city.trim(),
+            province: f.province.trim(), postalCode: f.postalCode.trim(), country: f.country.trim(),
+          },
+          promoCode: f.promoCode.trim(),
+        }),
       });
 
-      const textResponse = await res.text();
-      let data;
-      try {
-        data = JSON.parse(textResponse);
-      } catch (parseError) {
-        console.error("Erreur serveur :", textResponse);
-        alert("Erreur serveur temporaire.");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        setCheckoutError(data.error || "Le paiement a échoué. Veuillez réessayer.");
         return;
       }
 
-      if (!res.ok) {
-        alert(`Erreur de paiement: ${data.error || "Inconnue"}`);
-        return;
-      }
-
-      if (data.clientSecret) {
-        setClientSecret(data.clientSecret);
-        setIsCartOpen(false);
-      }
-    } catch (e) { 
-      alert("Erreur de réseau lors de la création du paiement.");
-    } finally { 
-      setIsCheckingOut(false); 
+      setOrderResult({ amount: data.amount, receiptUrl: data.receiptUrl || null });
+      setCart([]);
+    } catch (e) {
+      setCheckoutError("Erreur réseau lors du paiement.");
+    } finally {
+      setIsCheckingOut(false);
     }
+  };
+
+  const closeCheckout = () => {
+    setShowCheckout(false);
+    setOrderResult(null);
+    setCheckoutError('');
   };
 
   // --- LOGIQUE ADMIN ---
@@ -2314,7 +2385,7 @@ export default function App() {
 
   // --- RENDU BOUTIQUE ---
   return (
-    <div className={`min-h-screen bg-[#FDFCFB] text-[#1C1C1C] font-sans selection:bg-[#C5A059] selection:text-white ${clientSecret ? 'cursor-auto-mode' : ''}`} style={{ cursor: clientSecret ? 'auto' : 'none' }}>
+    <div className={`min-h-screen bg-[#FDFCFB] text-[#1C1C1C] font-sans selection:bg-[#C5A059] selection:text-white ${showCheckout ? 'cursor-auto-mode' : ''}`} style={{ cursor: showCheckout ? 'auto' : 'none' }}>
 
       {/* ANIMATIONS GLOBALES */}
       <style>{`
@@ -2341,8 +2412,8 @@ export default function App() {
       {/* BARRE DE PROGRESSION SCROLL */}
       <div className="fixed top-0 left-0 z-[201] h-[1px] bg-gradient-to-r from-[#C5A059] to-[#F0D68A] transition-[width] duration-150 ease-out" style={{ width: `${scrollProgress}%` }} />
 
-      {/* CURSEUR CUSTOM (caché pendant le checkout Stripe) */}
-      {!clientSecret && <CustomCursor />}
+      {/* CURSEUR CUSTOM (caché pendant le checkout) */}
+      {!showCheckout && <CustomCursor />}
 
       {/* MODALE HISTOIRE D'UNE FEMME */}
       <AnimatePresence>
@@ -2405,21 +2476,150 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* MODALE PAIEMENT STRIPE */}
-      {clientSecret && (
+      {/* MODALE PAIEMENT SQUARE */}
+      {showCheckout && (() => {
+        const subtotal = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
+        const rate = estimateTaxRate(checkoutForm.country, checkoutForm.province);
+        const estTax = subtotal * rate / 100;
+        const estTotal = subtotal + estTax;
+        const inputCls = "w-full border border-stone-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#C5A059] transition-colors";
+        const labelCls = "block text-[10px] uppercase tracking-widest text-stone-500 mb-1.5";
+        return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setClientSecret(null)} />
-          <div className="relative w-full max-w-2xl bg-white shadow-2xl animate-in zoom-in-95 overflow-hidden rounded-sm">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={closeCheckout} />
+          <div className="relative w-full max-w-lg bg-white shadow-2xl animate-in zoom-in-95 overflow-hidden rounded-sm">
             <div className="p-4 border-b flex justify-between items-center bg-stone-50">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-[#C5A059] font-medium">
                 <Lock size={12} /> {t.secureTransaction}
               </div>
-              <button onClick={() => setClientSecret(null)}><X size={20}/></button>
+              <button onClick={closeCheckout}><X size={20}/></button>
             </div>
-            <div className="p-4 md:p-8 overflow-y-auto max-h-[80vh] bg-stone-50" ref={checkoutRef} />
+
+            {orderResult ? (
+              /* --- CONFIRMATION --- */
+              <div className="p-10 text-center bg-stone-50">
+                <CheckCircle2 size={48} strokeWidth={1} className="mx-auto text-[#C5A059] mb-6" />
+                <h3 className="font-serif text-2xl uppercase tracking-widest mb-3">Merci !</h3>
+                <p className="text-sm text-stone-600 leading-relaxed mb-2">Votre paiement de <strong>{orderResult.amount.toFixed(2)} $ CAD</strong> a été confirmé.</p>
+                <p className="text-xs text-stone-500 mb-6">Un courriel de confirmation vous a été envoyé.</p>
+                {orderResult.receiptUrl && (
+                  <a href={orderResult.receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-block text-[10px] uppercase tracking-widest text-[#C5A059] border border-[#C5A059] px-6 py-3 hover:bg-[#C5A059] hover:text-white transition-colors mb-4">Voir mon reçu</a>
+                )}
+                <div>
+                  <button onClick={closeCheckout} className="text-[10px] uppercase tracking-widest text-stone-400 hover:text-black transition-colors mt-2">Fermer</button>
+                </div>
+              </div>
+            ) : (
+              /* --- FORMULAIRE --- */
+              <div className="p-6 md:p-8 overflow-y-auto max-h-[82vh] bg-stone-50 space-y-5">
+                {/* Résumé */}
+                <div className="bg-white border border-stone-200 p-4 space-y-1.5">
+                  {cart.map(item => (
+                    <div key={item.cartItemId} className="flex justify-between text-xs text-stone-600">
+                      <span>{item.quantity}× {item.name}{item.selectedColor ? ` (${item.selectedColor})` : ''}</span>
+                      <span>{(item.price * item.quantity).toFixed(2)} $</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-stone-100 pt-2 mt-2 space-y-1">
+                    <div className="flex justify-between text-xs text-stone-500"><span>Sous-total</span><span>{subtotal.toFixed(2)} $</span></div>
+                    <div className="flex justify-between text-xs text-stone-500"><span>Taxes estimées{rate > 0 ? ` (${rate}%)` : ''}</span><span>{estTax.toFixed(2)} $</span></div>
+                    <div className="flex justify-between text-sm font-medium pt-1"><span>Total estimé</span><span className="text-[#C5A059]">{estTotal.toFixed(2)} $ CAD</span></div>
+                  </div>
+                  <p className="text-[9px] text-stone-400 pt-1">Taxes et rabais finaux calculés selon la province de livraison.</p>
+                </div>
+
+                {/* Coordonnées */}
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className={labelCls}>Nom complet *</label>
+                    <input className={inputCls} value={checkoutForm.name} onChange={e => setCheckoutForm({ ...checkoutForm, name: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Courriel *</label>
+                      <input type="email" className={inputCls} value={checkoutForm.email} onChange={e => setCheckoutForm({ ...checkoutForm, email: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Téléphone</label>
+                      <input type="tel" className={inputCls} value={checkoutForm.phone} onChange={e => setCheckoutForm({ ...checkoutForm, phone: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Adresse de livraison */}
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className={labelCls}>Adresse *</label>
+                    <input className={inputCls} value={checkoutForm.line1} onChange={e => setCheckoutForm({ ...checkoutForm, line1: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Appartement, suite (optionnel)</label>
+                    <input className={inputCls} value={checkoutForm.line2} onChange={e => setCheckoutForm({ ...checkoutForm, line2: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Ville *</label>
+                      <input className={inputCls} value={checkoutForm.city} onChange={e => setCheckoutForm({ ...checkoutForm, city: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Code postal *</label>
+                      <input className={inputCls} value={checkoutForm.postalCode} onChange={e => setCheckoutForm({ ...checkoutForm, postalCode: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Pays *</label>
+                      <select className={inputCls} value={checkoutForm.country} onChange={e => setCheckoutForm({ ...checkoutForm, country: e.target.value })}>
+                        <option value="CA">Canada</option>
+                        <option value="US">États-Unis</option>
+                        <option value="FR">France</option>
+                        <option value="BE">Belgique</option>
+                        <option value="CH">Suisse</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelCls}>Province / État</label>
+                      {checkoutForm.country === 'CA' ? (
+                        <select className={inputCls} value={checkoutForm.province} onChange={e => setCheckoutForm({ ...checkoutForm, province: e.target.value })}>
+                          {CA_PROVINCES.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+                        </select>
+                      ) : (
+                        <input className={inputCls} value={checkoutForm.province} onChange={e => setCheckoutForm({ ...checkoutForm, province: e.target.value })} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Code promo */}
+                <div>
+                  <label className={labelCls}>Code promo (optionnel)</label>
+                  <input className={inputCls} value={checkoutForm.promoCode} onChange={e => setCheckoutForm({ ...checkoutForm, promoCode: e.target.value.toUpperCase() })} placeholder="Ex. BIENVENUE10" />
+                </div>
+
+                {/* Carte Square */}
+                <div>
+                  <label className={labelCls}>Carte de crédit *</label>
+                  <div id="sq-card" className="border border-stone-300 bg-white p-3 min-h-[52px]" />
+                </div>
+
+                {checkoutError && (
+                  <p className="text-xs text-red-600 bg-red-50 border border-red-100 px-3 py-2">{checkoutError}</p>
+                )}
+
+                <button
+                  onClick={submitPayment}
+                  disabled={isCheckingOut}
+                  className="w-full bg-[#1C1C1C] text-white py-4 text-[10px] uppercase tracking-[0.2em] font-medium hover:bg-[#C5A059] transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {isCheckingOut ? <Loader2 size={16} className="animate-spin" /> : <>Payer {estTotal.toFixed(2)} $</>}
+                </button>
+                <p className="text-[9px] text-center text-stone-400 flex items-center justify-center gap-1"><Lock size={10} /> Paiement sécurisé par Square</p>
+              </div>
+            )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* PANIER SLIDE-OVER */}
       <AnimatePresence>
