@@ -55,6 +55,24 @@ async function resolvePromo(rawCode: string | undefined) {
   return { code, percentOff };
 }
 
+/**
+ * Normalise un numéro de téléphone au format E.164 exigé par Square.
+ * Retourne undefined si le format est inconnu (le numéro brut reste conservé
+ * dans Firestore / les courriels, il n'est simplement pas envoyé à Square).
+ */
+function toE164(phone?: string, country?: string): string | undefined {
+  if (!phone) return undefined;
+  const cleaned = phone.replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('+')) {
+    return /^\+\d{8,15}$/.test(cleaned) ? cleaned : undefined;
+  }
+  const digits = cleaned.replace(/\D/g, '');
+  const c = (country || '').toUpperCase();
+  if (digits.length === 10 && (c === 'CA' || c === 'US' || c === '')) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  return undefined;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -161,7 +179,7 @@ export async function POST(request: Request) {
       orderId: order.id,
       locationId,
       buyerEmailAddress: customer.email,
-      buyerPhoneNumber: customer.phone || undefined,
+      buyerPhoneNumber: toE164(customer.phone, shipping.country),
       shippingAddress,
       note: `Commande: ${orderDescription}`.slice(0, 500),
       autocomplete: true,

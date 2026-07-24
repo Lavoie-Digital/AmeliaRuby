@@ -778,11 +778,45 @@ export default function App() {
         return;
       }
 
+      // 3D Secure / SCA — requis par les banques européennes (FR/BE/CH),
+      // améliore aussi le taux d'approbation sur toutes les cartes.
+      let verificationToken: string | undefined;
+      if (squarePaymentsRef.current?.verifyBuyer) {
+        try {
+          const subtotal = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
+          const rate = estimateTaxRate(f.country, f.province);
+          const amountStr = (subtotal * (1 + rate / 100)).toFixed(2);
+          const parts = f.name.trim().split(/\s+/);
+          const verify = await squarePaymentsRef.current.verifyBuyer(tokenResult.token, {
+            amount: amountStr,
+            currencyCode: 'CAD',
+            intent: 'CHARGE',
+            billingContact: {
+              givenName: parts[0] || undefined,
+              familyName: parts.slice(1).join(' ') || undefined,
+              email: f.email.trim() || undefined,
+              phone: f.phone.trim() || undefined,
+              addressLines: [f.line1.trim(), f.line2.trim()].filter(Boolean),
+              city: f.city.trim() || undefined,
+              state: f.province.trim() || undefined,
+              postalCode: f.postalCode.trim() || undefined,
+              countryCode: f.country.trim() || undefined,
+            },
+          });
+          verificationToken = verify?.token;
+        } catch (verr) {
+          console.error('verifyBuyer:', verr);
+          setCheckoutError("La vérification de sécurité de la carte a échoué ou a été annulée.");
+          return;
+        }
+      }
+
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceId: tokenResult.token,
+          verificationToken,
           items: cart.map(i => ({
             id: i.id,
             name: i.selectedColor ? `${i.name} (${i.selectedColor})` : i.name,
