@@ -45,18 +45,20 @@ export async function getLocationId(): Promise<string> {
 }
 
 /**
- * Taxes de vente canadiennes par province (taux combinés 2026).
- * Reproduit le comportement de « Stripe Tax » : on perçoit la taxe sur les
- * commandes canadiennes selon la province de livraison, 0 % ailleurs.
- *
- * ⚠️ À valider avec la comptable de la cliente selon les provinces où
- * l'entreprise est réellement inscrite. Les taux ci-dessous sont facilement
- * modifiables.
+ * Taxes de vente canadiennes par province de livraison.
+ * Hypothèse : entreprise enregistrée au QUÉBEC (inscrite TPS/GST + TVQ/QST).
+ *   - QC : TPS 5 % + TVQ 9,975 %.
+ *   - Provinces TVH/HST (ON, NB, NL, NS, PE) : TVH au taux de destination
+ *     (l'inscription TPS couvre la TVH selon les règles du lieu de fourniture).
+ *   - Autres provinces/territoires (AB, BC, MB, SK, NT, NU, YT) : TPS 5 %
+ *     seulement. La PST de C.-B./Man./Sask. exige une inscription provinciale
+ *     distincte — à ajouter ici si l'entreprise s'y inscrit un jour.
+ *   - Hors Canada : 0 %.
  */
 const CANADA_TAX_RATES: Record<string, number> = {
   AB: 5,        // TPS seulement
-  BC: 12,       // TPS 5 + PST 7
-  MB: 12,       // TPS 5 + PST 7
+  BC: 5,        // TPS seulement (PST 7 % non perçue — pas d'inscription en C.-B.)
+  MB: 5,        // TPS seulement (PST 7 % non perçue — pas d'inscription au Manitoba)
   NB: 15,       // TVH
   NL: 15,       // TVH
   NS: 14,       // TVH (14 % depuis avr. 2025)
@@ -65,7 +67,7 @@ const CANADA_TAX_RATES: Record<string, number> = {
   ON: 13,       // TVH
   PE: 15,       // TVH
   QC: 14.975,   // TPS 5 + TVQ 9,975
-  SK: 11,       // TPS 5 + PST 6
+  SK: 5,        // TPS seulement (PST 6 % non perçue — pas d'inscription en Sask.)
   YT: 5,        // TPS seulement
 };
 

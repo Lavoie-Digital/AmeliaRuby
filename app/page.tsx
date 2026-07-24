@@ -27,6 +27,12 @@ function estimateTaxRate(country: string, province: string): number {
   if (c && c !== 'CA' && c !== 'CANADA') return 0;
   return CLIENT_TAX_RATES[(province || '').trim().toUpperCase()] ?? 0;
 }
+// Livraison : 18 $ sous 400 $ de sous-total, offerte à 400 $ et plus.
+const SHIPPING_FEE = 18;
+const FREE_SHIPPING_MIN = 400;
+function shippingFor(subtotal: number): number {
+  return subtotal < FREE_SHIPPING_MIN ? SHIPPING_FEE : 0;
+}
 const CA_PROVINCES = [
   ['QC', 'Québec'], ['ON', 'Ontario'], ['BC', 'Colombie-Britannique'], ['AB', 'Alberta'],
   ['MB', 'Manitoba'], ['SK', 'Saskatchewan'], ['NS', 'Nouvelle-Écosse'], ['NB', 'Nouveau-Brunswick'],
@@ -784,8 +790,9 @@ export default function App() {
       if (squarePaymentsRef.current?.verifyBuyer) {
         try {
           const subtotal = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
+          const shipping = shippingFor(subtotal);
           const rate = estimateTaxRate(f.country, f.province);
-          const amountStr = (subtotal * (1 + rate / 100)).toFixed(2);
+          const amountStr = ((subtotal + shipping) * (1 + rate / 100)).toFixed(2);
           const parts = f.name.trim().split(/\s+/);
           const verify = await squarePaymentsRef.current.verifyBuyer(tokenResult.token, {
             amount: amountStr,
@@ -2513,9 +2520,10 @@ export default function App() {
       {/* MODALE PAIEMENT SQUARE */}
       {showCheckout && (() => {
         const subtotal = cart.reduce((a, b) => a + (b.price * b.quantity), 0);
+        const shipping = shippingFor(subtotal);
         const rate = estimateTaxRate(checkoutForm.country, checkoutForm.province);
-        const estTax = subtotal * rate / 100;
-        const estTotal = subtotal + estTax;
+        const estTax = (subtotal + shipping) * rate / 100;
+        const estTotal = subtotal + shipping + estTax;
         const inputCls = "w-full border border-stone-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#C5A059] transition-colors";
         const labelCls = "block text-[10px] uppercase tracking-widest text-stone-500 mb-1.5";
         return (
@@ -2556,9 +2564,16 @@ export default function App() {
                   ))}
                   <div className="border-t border-stone-100 pt-2 mt-2 space-y-1">
                     <div className="flex justify-between text-xs text-stone-500"><span>Sous-total</span><span>{subtotal.toFixed(2)} $</span></div>
+                    <div className="flex justify-between text-xs text-stone-500">
+                      <span>Livraison</span>
+                      <span>{shipping > 0 ? `${shipping.toFixed(2)} $` : 'Gratuite'}</span>
+                    </div>
                     <div className="flex justify-between text-xs text-stone-500"><span>Taxes estimées{rate > 0 ? ` (${rate}%)` : ''}</span><span>{estTax.toFixed(2)} $</span></div>
                     <div className="flex justify-between text-sm font-medium pt-1"><span>Total estimé</span><span className="text-[#C5A059]">{estTotal.toFixed(2)} $ CAD</span></div>
                   </div>
+                  {shipping > 0 && (
+                    <p className="text-[10px] text-[#C5A059] pt-1">Ajoutez {(FREE_SHIPPING_MIN - subtotal).toFixed(2)} $ pour la livraison gratuite.</p>
+                  )}
                   <p className="text-[9px] text-stone-400 pt-1">Taxes et rabais finaux calculés selon la province de livraison.</p>
                 </div>
 

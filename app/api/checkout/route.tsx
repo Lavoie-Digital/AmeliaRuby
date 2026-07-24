@@ -7,6 +7,11 @@ import { processOrderOnce, type OrderData } from '../_lib/orderProcessing';
 
 export const dynamic = 'force-dynamic';
 
+// Livraison : frais fixes de 18 $ tant que le sous-total (avant taxes) est
+// sous le seuil de 400 $ ; livraison offerte à partir de 400 $.
+const SHIPPING_FEE_CENTS = 1800;
+const FREE_SHIPPING_MIN_CENTS = 40000;
+
 interface CartItem {
   id: string;
   name: string;
@@ -135,13 +140,32 @@ export async function POST(request: Request) {
           ]
         : undefined;
 
-    // --- Création de la commande Square (calcule sous-total, rabais, taxes) ---
+    // --- Frais de livraison : 18 $ si le sous-total (avant taxes) est < 400 $ ---
+    // Ajouté comme « service charge » taxable : la taxe s'y applique, mais le
+    // code promo (portée ORDER) ne l'escompte pas.
+    const subtotalCents = items.reduce((sum, i) => sum + Math.round(i.price * 100) * i.quantity, 0);
+    const shippingCents = subtotalCents < FREE_SHIPPING_MIN_CENTS ? SHIPPING_FEE_CENTS : 0;
+    const serviceCharges: Square.OrderServiceCharge[] | undefined =
+      shippingCents > 0
+        ? [
+            {
+              uid: 'shipping',
+              name: 'Livraison',
+              amountMoney: { amount: BigInt(shippingCents), currency: 'CAD' },
+              calculationPhase: 'SUBTOTAL_PHASE',
+              taxable: true,
+            },
+          ]
+        : undefined;
+
+    // --- Création de la commande Square (calcule sous-total, rabais, livraison, taxes) ---
     const orderRes = await client.orders.create({
       idempotencyKey: randomUUID(),
       order: {
         locationId,
         lineItems,
         discounts,
+        serviceCharges,
         taxes,
         metadata: {
           produits: orderDescription.slice(0, 255),
