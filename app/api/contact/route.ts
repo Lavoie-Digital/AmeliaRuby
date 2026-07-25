@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import sgMail from '@sendgrid/mail';
+import { BRAND_EMAIL, OWNER_EMAIL, SYSTEM_FROM_EMAIL } from '../_lib/mail';
 
 // Configuration de la clé API
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
-const CONTACT_EMAIL = 'info@ameliaruby.com';
+const CONTACT_EMAIL = BRAND_EMAIL;
 
 // Échappe le HTML pour éviter toute injection dans les templates
 function escapeHtml(str: string): string {
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
     const safeEmail = escapeHtml(email);
     const safeMessage = escapeHtml(message).replace(/\n/g, '<br />');
 
-    // 1) Notification à la maison (info@ameliaruby.com)
+    // 1) Notification interne à la propriétaire (expédiée depuis noreply@)
     const ownerHtml = `
       <div style="font-family: 'Times New Roman', serif; max-width: 600px; margin: auto; padding: 40px 20px; color: #1C1C1C; background-color: #ffffff; border: 1px solid #f0f0f0;">
         <div style="text-align: center;">
@@ -66,8 +67,9 @@ export async function POST(req: Request) {
     `;
 
     await sgMail.send({
-      to: CONTACT_EMAIL,
-      from: { email: CONTACT_EMAIL, name: 'Site Amélia Ruby' },
+      to: OWNER_EMAIL,
+      // Expéditeur ≠ destinataire, sinon Gmail replie la notification. Voir _lib/mail.ts.
+      from: { email: SYSTEM_FROM_EMAIL, name: 'Site Amélia Ruby' },
       replyTo: { email, name },
       subject: `Nouveau message de ${name} — Formulaire de contact`,
       text: `Nom: ${name}\nCourriel: ${email}\n\nMessage:\n${message}`,

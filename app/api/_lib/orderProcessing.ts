@@ -1,9 +1,7 @@
 import sgMail from '@sendgrid/mail';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminDb, inventoryCollection } from '../admin/_lib/firebase';
-
-// Adresse qui reçoit les notifications de nouvelles commandes (propriétaire).
-const OWNER_EMAIL = process.env.ORDER_NOTIFICATION_EMAIL || 'info@ameliaruby.com';
+import { BRAND_EMAIL, OWNER_EMAIL, SYSTEM_FROM_EMAIL } from './mail';
 
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -161,8 +159,8 @@ export async function processOrderOnce(data: OrderData): Promise<{ processed: bo
 
     await sgMail.send({
       to: customerEmail,
-      from: 'Maison Amélia Ruby <info@ameliaruby.com>',
-      replyTo: 'info@ameliaruby.com',
+      from: { email: BRAND_EMAIL, name: 'Maison Amélia Ruby' },
+      replyTo: BRAND_EMAIL,
       subject: 'Merci de votre confiance — Maison Amélia Ruby',
       text: `Bonjour ${customerName}, votre commande est en cours de préparation.`,
       html: emailHtml,
@@ -173,6 +171,33 @@ export async function processOrderOnce(data: OrderData): Promise<{ processed: bo
   }
 
   // --- NOTIFICATION À LA PROPRIÉTAIRE ---
+  await sendOwnerOrderNotification(data);
+
+  return { processed: true };
+}
+
+/**
+ * Envoie la notification de nouvelle commande à la propriétaire.
+ *
+ * Exportée séparément pour pouvoir vérifier l'envoi (expéditeur accepté par
+ * SendGrid, arrivée en boîte de réception) sans rejouer toute la commande —
+ * donc sans écrire dans Firestore ni décrémenter l'inventaire.
+ *
+ * N'échoue jamais bruyamment : une commande payée ne doit pas être perdue
+ * parce que le courriel n'est pas parti.
+ */
+export async function sendOwnerOrderNotification(data: OrderData): Promise<void> {
+  const {
+    orderId,
+    customerName,
+    customerEmail,
+    customerPhone,
+    amount,
+    produits,
+    shippingAddress,
+    mode,
+  } = data;
+
   try {
     const modeLabel = mode === 'production' ? '' : ' [TEST]';
     const dateStr = new Date().toLocaleString('fr-CA', { timeZone: 'America/Toronto' });
@@ -236,7 +261,9 @@ export async function processOrderOnce(data: OrderData): Promise<{ processed: bo
 
     await sgMail.send({
       to: OWNER_EMAIL,
-      from: { email: 'info@ameliaruby.com', name: 'Boutique Amélia Ruby' },
+      // Expéditeur ≠ destinataire, sinon Gmail replie la notification et elle
+      // peut passer inaperçue. Voir _lib/mail.ts.
+      from: { email: SYSTEM_FROM_EMAIL, name: 'Boutique Amélia Ruby' },
       replyTo: customerEmail,
       subject: `🛍️ Nouvelle commande${modeLabel} — ${amount.toFixed(2)} $ — ${customerName}`,
       text: ownerText,
@@ -245,7 +272,8 @@ export async function processOrderOnce(data: OrderData): Promise<{ processed: bo
     console.log(`✅ Notification envoyée à ${OWNER_EMAIL}`);
   } catch (ownerEmailError: any) {
     console.error('❌ Erreur notification propriétaire:', ownerEmailError.message);
+    if (ownerEmailError.response?.body) {
+      console.error('   Détail SendGrid:', JSON.stringify(ownerEmailError.response.body));
+    }
   }
-
-  return { processed: true };
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import sgMail from '@sendgrid/mail';
+import { BRAND_EMAIL } from '../_lib/mail';
 
 // Configuration de la clé API
 if (process.env.SENDGRID_API_KEY) {
@@ -52,10 +53,10 @@ export async function POST(req: Request) {
     await sgMail.send({
       to: email,
       from: {
-        email: 'info@ameliaruby.com',
+        email: BRAND_EMAIL,
         name: 'Maison Amélia Ruby'
       },
-      replyTo: 'info@ameliaruby.com',
+      replyTo: BRAND_EMAIL,
       subject: 'Votre création est en route — Maison Amélia Ruby',
       text: `Votre colis (${carrier}) avec le numéro ${trackingNumber} a été expédié.`,
       html: emailHtml,
