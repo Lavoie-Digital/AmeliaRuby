@@ -1103,6 +1103,12 @@ export default function App() {
     reader.readAsDataURL(file);
   };
 
+  const normalizeRetailerUrl = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed || /^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  };
+
   const saveRetailer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminSessionPassword) return;
@@ -1121,7 +1127,7 @@ export default function App() {
         const res = await fetch(`/api/admin/retailers/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'x-admin-password': adminSessionPassword },
-          body: JSON.stringify(updates),
+          body: JSON.stringify({ ...updates, url: normalizeRetailerUrl(updates.url || '') }),
         });
         if (!res.ok) throw new Error('Erreur sauvegarde');
         setEditingRetailer(null);
@@ -1129,7 +1135,7 @@ export default function App() {
         const res = await fetch('/api/admin/retailers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-admin-password': adminSessionPassword },
-          body: JSON.stringify({ ...newRetailer, order: retailers.length }),
+          body: JSON.stringify({ ...newRetailer, url: normalizeRetailerUrl(newRetailer.url), order: retailers.length }),
         });
         if (!res.ok) throw new Error('Erreur création');
         setNewRetailer({ name: '', url: '', logo: '' });
@@ -2282,6 +2288,11 @@ export default function App() {
                       type="url"
                       value={editingRetailer ? (editingRetailer.url || '') : newRetailer.url}
                       onChange={e => editingRetailer ? setEditingRetailer({ ...editingRetailer, url: e.target.value }) : setNewRetailer({ ...newRetailer, url: e.target.value })}
+                      onBlur={e => {
+                        const normalized = normalizeRetailerUrl(e.target.value);
+                        if (normalized === e.target.value) return;
+                        editingRetailer ? setEditingRetailer({ ...editingRetailer, url: normalized }) : setNewRetailer({ ...newRetailer, url: normalized });
+                      }}
                       placeholder="https://www.facebook.com/..."
                       className="w-full border border-stone-200 px-4 py-3 text-sm font-light outline-none focus:border-[#C5A059] transition-colors"
                     />
