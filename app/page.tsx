@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, X, Loader2, Lock,
@@ -288,6 +289,9 @@ const translations = {
     footerAiAtelier: 'Atelier IA Sur Mesure',
     footerContact: 'Contact',
     footerPrivateAccess: 'Accès Atelier Privé',
+    footerLegal: 'Informations',
+    footerReturns: 'Retour et garantie',
+    footerPrivacy: 'Confidentialité',
     footerRights: '© 2026 — Maison Amélia Ruby — Tous droits réservés',
     footerMade: 'Fait avec soin à Montréal',
     footerCredit: 'Création de Lavoie Digital',
@@ -396,6 +400,9 @@ const translations = {
     footerAiAtelier: 'AI Bespoke Atelier',
     footerContact: 'Contact',
     footerPrivateAccess: 'Private Atelier Access',
+    footerLegal: 'Information',
+    footerReturns: 'Returns & Warranty',
+    footerPrivacy: 'Privacy',
     footerRights: '© 2026 — Maison Amélia Ruby — All rights reserved',
     footerMade: 'Made with care in Montreal',
     footerCredit: 'Created by Lavoie Digital',
@@ -3575,7 +3582,7 @@ export default function App() {
       {/* FOOTER */}
       <footer className="bg-[#111111] text-white/30 pt-28 pb-12 px-6 md:px-20 border-t border-white/5">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-16 pb-20 border-b border-white/5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 pb-20 border-b border-white/5">
             <div className="space-y-6">
               <h5 className="text-white font-serif text-4xl tracking-widest leading-none">Amélia<br/>Ruby</h5>
               <p className="text-[10px] uppercase tracking-[0.4em] font-light leading-relaxed">{t.footerTagline}<br/>{t.footerCity}</p>
@@ -3624,6 +3631,13 @@ export default function App() {
                 <a href="mailto:info@ameliaruby.com" className="block text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">info@ameliaruby.com</a>
                 <p className="text-[10px] uppercase tracking-[0.3em] font-light">{t.footerCity}</p>
                 <button onClick={() => setView('admin')} className="text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">{t.footerPrivateAccess}</button>
+              </div>
+            </div>
+            <div className="space-y-6">
+              <p className="text-[9px] uppercase tracking-[0.4em] text-white/20 font-medium">{t.footerLegal}</p>
+              <div className="space-y-4">
+                <Link href="/politique-retour" className="block text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">{t.footerReturns}</Link>
+                <Link href="/politique-confidentialite" className="block text-[10px] uppercase tracking-[0.3em] hover:text-[#C5A059] transition-colors font-light">{t.footerPrivacy}</Link>
               </div>
             </div>
           </div>
