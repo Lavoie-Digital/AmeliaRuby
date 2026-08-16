@@ -1833,6 +1833,13 @@ export default function App() {
                   )}
                 </div>
 
+                {/* RAPPEL : aucune commande n'atterrit ici sans paiement encaissé. */}
+                <p className="bg-green-50 border border-green-100 text-green-800 px-4 py-3 text-[10px] leading-relaxed">
+                  ✓ Toutes les commandes ci-dessous sont <strong>déjà payées</strong> par carte via Square — le paiement
+                  se fait sur le site avant l'enregistrement de la commande. Rien à réclamer à la cliente : il ne reste
+                  qu'à préparer et expédier.
+                </p>
+
                 {/* BARRE DE RECHERCHE */}
                 <div className="flex items-center gap-3 bg-white border border-stone-200 px-4 py-3 shadow-sm focus-within:border-[#C5A059] transition-colors">
                   <Search size={14} className="text-stone-300 flex-shrink-0" />
@@ -1935,8 +1942,23 @@ export default function App() {
                                 <span className={`text-[8px] uppercase tracking-widest px-2 py-1 font-medium whitespace-nowrap ${isExpedié ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
                                   {client.statut || 'À préparer'}
                                 </span>
+                                {/* Une commande n'est enregistrée ici qu'une fois le paiement encaissé par Square. */}
+                                <span className="text-[8px] uppercase tracking-widest px-2 py-1 font-medium whitespace-nowrap bg-green-50 text-green-700 border border-green-100">
+                                  ✓ Payé
+                                </span>
                                 {client.totalDepense != null && (
                                   <span className="text-xs font-light text-[#C5A059]">{client.totalDepense} $</span>
+                                )}
+                                {client.recuUrl && (
+                                  <a
+                                    href={client.recuUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-[8px] uppercase tracking-widest text-stone-400 hover:text-[#C5A059] underline whitespace-nowrap"
+                                  >
+                                    Reçu Square
+                                  </a>
                                 )}
                               </div>
                             </div>

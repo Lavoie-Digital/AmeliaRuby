@@ -196,6 +196,7 @@ export async function sendOwnerOrderNotification(data: OrderData): Promise<void>
     produits,
     shippingAddress,
     mode,
+    receiptUrl,
   } = data;
 
   try {
@@ -217,14 +218,23 @@ export async function sendOwnerOrderNotification(data: OrderData): Promise<void>
       <div style="font-family: 'Times New Roman', serif; max-width: 600px; margin: auto; padding: 40px 20px; color: #1C1C1C; background-color: #ffffff; border: 1px solid #f0f0f0;">
         <div style="text-align: center;">
           <h1 style="text-transform: uppercase; letter-spacing: 6px; font-weight: 300; font-size: 22px; margin-bottom: 8px;">Amélia Ruby</h1>
-          <p style="text-transform: uppercase; letter-spacing: 3px; font-size: 10px; color: #999999; margin-bottom: 24px;">Nouvelle commande${modeLabel}</p>
+          <p style="text-transform: uppercase; letter-spacing: 3px; font-size: 10px; color: #999999; margin-bottom: 24px;">Paiement reçu — commande à préparer${modeLabel}</p>
           <div style="height: 1px; background-color: #C5A059; width: 50px; margin: 0 auto 30px auto;"></div>
         </div>
 
         <div style="text-align: center; margin-bottom: 30px;">
-          <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #a8a29e; margin: 0 0 6px 0;">Montant total (taxes incl.)</p>
+          <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #a8a29e; margin: 0 0 6px 0;">Montant encaissé (taxes incl.)</p>
           <p style="font-size: 30px; margin: 0; color: #C5A059; font-weight: bold;">${amount.toFixed(2)} $ CAD</p>
           <p style="font-size: 11px; color: #999; margin: 8px 0 0 0;">${escapeHtml(dateStr)}</p>
+        </div>
+
+        <div style="background-color: #F0FDF4; border: 1px solid #BBF7D0; padding: 16px 20px; margin-bottom: 24px; text-align: center;">
+          <p style="font-size: 14px; margin: 0; color: #15803D; font-weight: bold;">✅ Payé par carte via Square</p>
+          <p style="font-size: 12px; margin: 6px 0 0 0; color: #166534; line-height: 1.6;">
+            L'argent est déjà encaissé — rien à réclamer à la cliente.
+            Le versement dans ton compte bancaire suit sous 1 à 2 jours ouvrables.
+          </p>
+          ${receiptUrl ? `<p style="margin: 14px 0 0 0;"><a href="${escapeHtml(receiptUrl)}" style="display: inline-block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #15803D; border: 1px solid #15803D; padding: 8px 16px; text-decoration: none;">Voir le reçu Square</a></p>` : ''}
         </div>
 
         <div style="background-color: #FDFCFB; padding: 24px; border: 1px solid #F0F0F0; margin-bottom: 24px;">
@@ -247,9 +257,13 @@ export async function sendOwnerOrderNotification(data: OrderData): Promise<void>
     `;
 
     const ownerText =
-      `Nouvelle commande${modeLabel}\n\n` +
-      `Montant : ${amount.toFixed(2)} $ CAD (taxes incl.)\n` +
-      `Date : ${dateStr}\n\n` +
+      `Paiement reçu — commande à préparer${modeLabel}\n\n` +
+      `✅ Payé par carte via Square. L'argent est déjà encaissé, rien à réclamer à la cliente.\n` +
+      `Le versement dans ton compte bancaire suit sous 1 à 2 jours ouvrables.\n\n` +
+      `Montant encaissé : ${amount.toFixed(2)} $ CAD (taxes incl.)\n` +
+      `Date : ${dateStr}\n` +
+      (receiptUrl ? `Reçu Square : ${receiptUrl}\n` : '') +
+      `\n` +
       `Produits : ${produits || '—'}\n\n` +
       `Client : ${customerName}\n` +
       `Courriel : ${customerEmail}\n` +
@@ -265,7 +279,7 @@ export async function sendOwnerOrderNotification(data: OrderData): Promise<void>
       // peut passer inaperçue. Voir _lib/mail.ts.
       from: { email: SYSTEM_FROM_EMAIL, name: 'Boutique Amélia Ruby' },
       replyTo: customerEmail,
-      subject: `🛍️ Nouvelle commande${modeLabel} — ${amount.toFixed(2)} $ — ${customerName}`,
+      subject: `✅ Paiement reçu${modeLabel} — ${amount.toFixed(2)} $ — ${customerName}`,
       text: ownerText,
       html: ownerHtml,
     });

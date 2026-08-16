@@ -158,27 +158,7 @@ export async function POST(request: Request) {
           ]
         : undefined;
 
-    // --- Création de la commande Square (calcule sous-total, rabais, livraison, taxes) ---
-    const orderRes = await client.orders.create({
-      idempotencyKey: randomUUID(),
-      order: {
-        locationId,
-        lineItems,
-        discounts,
-        serviceCharges,
-        taxes,
-        metadata: {
-          produits: orderDescription.slice(0, 255),
-        },
-      },
-    });
-
-    const order = orderRes.order;
-    if (!order?.id || !order.totalMoney?.amount) {
-      return NextResponse.json({ error: 'Échec de la création de la commande.' }, { status: 502 });
-    }
-
-    // --- Paiement (Web Payments SDK: sourceId = jeton de carte) ---
+    // --- Adresse de livraison (partagée : fulfillment Square + paiement + Firestore) ---
     const shippingAddress: Square.Address | undefined =
       shipping.line1 || shipping.city
         ? {
@@ -192,6 +172,66 @@ export async function POST(request: Request) {
           }
         : undefined;
 
+    // --- Fulfillment : fait apparaître la commande dans « Commandes » du tableau
+    // de bord Square (avec le nom et l'adresse), et non seulement dans les
+    // transactions. État PROPOSED = « à préparer » ; la commande reste donc OPEN
+    // côté Square jusqu'à l'expédition, même une fois payée.
+    const fulfillments: Square.Fulfillment[] | undefined = shippingAddress
+      ? [
+          {
+            type: 'SHIPMENT',
+            state: 'PROPOSED',
+            shipmentDetails: {
+              recipient: {
+                displayName: customer.name || 'Client',
+                emailAddress: customer.email,
+                phoneNumber: toE164(customer.phone, shipping.country),
+                address: shippingAddress,
+              },
+            },
+          },
+        ]
+      : undefined;
+
+    // --- Création de la commande Square (calcule sous-total, rabais, livraison, taxes) ---
+    const orderPayload = {
+      locationId,
+      lineItems,
+      discounts,
+      serviceCharges,
+      taxes,
+      metadata: {
+        produits: orderDescription.slice(0, 255),
+      },
+    };
+
+    // Le fulfillment est un confort d'affichage : s'il fait échouer la création
+    // (adresse refusée par Square, etc.), on réessaie sans lui plutôt que de
+    // faire échouer une vente.
+    let orderRes;
+    try {
+      orderRes = await client.orders.create({
+        idempotencyKey: randomUUID(),
+        order: { ...orderPayload, fulfillments },
+      });
+    } catch (fulfillErr: any) {
+      if (!fulfillments) throw fulfillErr;
+      console.error(
+        '⚠️ Création de commande avec fulfillment refusée, nouvelle tentative sans:',
+        fulfillErr?.errors?.[0]?.detail || fulfillErr?.message
+      );
+      orderRes = await client.orders.create({
+        idempotencyKey: randomUUID(),
+        order: orderPayload,
+      });
+    }
+
+    const order = orderRes.order;
+    if (!order?.id || !order.totalMoney?.amount) {
+      return NextResponse.json({ error: 'Échec de la création de la commande.' }, { status: 502 });
+    }
+
+    // --- Paiement (Web Payments SDK: sourceId = jeton de carte) ---
     const paymentRes = await client.payments.create({
       sourceId,
       verificationToken,
@@ -209,10 +249,36 @@ export async function POST(request: Request) {
       autocomplete: true,
     });
 
-    const payment = paymentRes.payment;
-    if (!payment || (payment.status !== 'COMPLETED' && payment.status !== 'APPROVED')) {
+    let payment = paymentRes.payment;
+
+    // APPROVED = carte autorisée mais argent PAS encaissé (l'autorisation expire
+    // d'elle-même après quelques jours). Avec autocomplete: true ça ne devrait pas
+    // se produire, mais si ça arrive on capture explicitement : on ne confirme
+    // jamais une commande dont les fonds ne sont pas pris.
+    if (payment?.status === 'APPROVED' && payment.id) {
+      try {
+        const completed = await client.payments.complete({ paymentId: payment.id });
+        payment = completed.payment || payment;
+        console.log(`💳 Paiement ${payment.id} capturé explicitement (statut initial APPROVED).`);
+      } catch (e: any) {
+        console.error('❌ Capture du paiement APPROVED échouée:', e?.errors?.[0]?.detail || e.message);
+      }
+    }
+
+    if (!payment || payment.status !== 'COMPLETED') {
+      // Libère l'autorisation pour ne pas laisser de fonds bloqués sur la carte.
+      if (payment?.status === 'APPROVED' && payment.id) {
+        try {
+          await client.payments.cancel({ paymentId: payment.id });
+          console.log(`↩️ Autorisation ${payment.id} annulée (non capturable).`);
+        } catch (e: any) {
+          console.error('❌ Annulation de l\'autorisation échouée:', e?.errors?.[0]?.detail || e.message);
+        }
+      }
       return NextResponse.json(
-        { error: `Paiement non complété (statut: ${payment?.status || 'inconnu'}).` },
+        {
+          error: `Paiement non complété (statut : ${payment?.status || 'inconnu'}). Aucun montant n'a été encaissé.`,
+        },
         { status: 402 }
       );
     }
