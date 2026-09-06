@@ -167,6 +167,71 @@ const getVariantImages = (variant: any): string[] => {
   return [];
 };
 
+// Les photos sont stockées en base64 à l'intérieur du document Firestore, qui est
+// plafonné à 1 Mio. Une photo de téléphone brute (3 à 8 Mo) fait donc échouer
+// l'enregistrement : on redimensionne et recompresse dans le navigateur avant
+// de convertir en base64.
+const MAX_DOC_BYTES = 900 * 1024;       // marge de sécurité sous la limite Firestore
+const TARGET_IMAGE_BYTES = 140 * 1024;  // budget visé par photo produit
+const TARGET_LOGO_BYTES = 60 * 1024;    // budget visé pour un logo de boutique
+
+const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = ev => resolve(ev.target?.result as string);
+  reader.onerror = () => reject(new Error(`Lecture impossible : ${file.name}`));
+  reader.readAsDataURL(file);
+});
+
+const loadImageElement = (file: File) => new Promise<HTMLImageElement>((resolve, reject) => {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+  img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(`Image illisible : ${file.name}`)); };
+  img.src = url;
+});
+
+// Redimensionne puis recompresse jusqu'à passer sous targetBytes : on baisse
+// d'abord la qualité, puis les dimensions.
+const compressImage = async (file: File, maxDim = 1600, targetBytes = TARGET_IMAGE_BYTES): Promise<string> => {
+  // Le passage par canvas détruirait un SVG ou l'animation d'un GIF
+  if (file.type === 'image/svg+xml' || file.type === 'image/gif') return readFileAsDataUrl(file);
+
+  const img = await loadImageElement(file);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return readFileAsDataUrl(file);
+
+  let dim = maxDim;
+  let best = '';
+  for (let pass = 0; pass < 4; pass++) {
+    const scale = Math.min(1, dim / Math.max(img.width, img.height));
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    // Le JPEG n'a pas de canal alpha : on aplatit la transparence sur du blanc
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    for (const quality of [0.82, 0.7, 0.6]) {
+      best = canvas.toDataURL('image/jpeg', quality);
+      if (best.length <= targetBytes) return best;
+    }
+    dim = Math.round(dim * 0.75);
+  }
+  return best;
+};
+
+// Poids approximatif du document Firestore une fois sérialisé.
+const estimateProductBytes = (product: unknown): number => {
+  try {
+    return new Blob([JSON.stringify(product)]).size;
+  } catch {
+    return JSON.stringify(product).length;
+  }
+};
+
+const formatBytes = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} Mo`;
+
 const heroImagesDesktop = ['/hero.jpeg', '/hero-2.jpeg', '/hero-3.jpeg', '/hero-4.jpeg'];
 const heroImagesMobile = ['/hero.jpeg', '/hero-2.jpeg', '/hero-3.jpeg', '/hero-4.jpeg'];
 
@@ -496,6 +561,8 @@ export default function App() {
   const [isEditing, setIsEditing] = useState<any | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [productFormError, setProductFormError] = useState('');
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: '', price: '' as number | string, description: '', category: 'Sac à main', colors: '', images: [] as string[],
     stockQuantity: 1, showFomo: false, isPublished: false, isPreOrder: false,
@@ -1009,7 +1076,7 @@ export default function App() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent) => {
     let files: FileList | null = null;
     if ('dataTransfer' in e) {
       e.preventDefault();
@@ -1017,26 +1084,30 @@ export default function App() {
     } else {
       files = (e.target as HTMLInputElement).files;
     }
-    if (!files) return;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (fileArray.length === 0) {
+      setProductFormError('Ces fichiers ne sont pas des images.');
+      return;
+    }
 
     setIsUploading(true);
-    const fileArray = Array.from(files);
-    const readers = fileArray.map(file => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (event) => resolve(event.target?.result as string);
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(readers).then(base64Images => {
+    setProductFormError('');
+    try {
+      const compressed = await Promise.all(fileArray.map(file => compressImage(file)));
       if (isEditing) {
-        setIsEditing({ ...isEditing, images: [...(isEditing.images || []), ...base64Images] });
+        setIsEditing({ ...isEditing, images: [...(isEditing.images || []), ...compressed] });
       } else {
-        setNewProduct({ ...newProduct, images: [...newProduct.images, ...base64Images] });
+        setNewProduct({ ...newProduct, images: [...newProduct.images, ...compressed] });
       }
+    } catch (err: any) {
+      console.error('Erreur traitement image:', err);
+      setProductFormError(err?.message || "Impossible de traiter cette image.");
+    } finally {
       setIsUploading(false);
-    });
+      if (!('dataTransfer' in e)) (e.target as HTMLInputElement).value = '';
+    }
   };
 
   const removeImage = (index: number) => {
@@ -1051,33 +1122,50 @@ export default function App() {
 
   const saveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminSessionPassword) return;
+    if (!adminSessionPassword || isSavingProduct) return;
+    setProductFormError('');
+
+    let payload: any = newProduct;
+    if (isEditing) {
+      payload = { ...isEditing };
+      delete payload.id;
+    }
+    const size = estimateProductBytes(payload);
+    if (size > MAX_DOC_BYTES) {
+      setProductFormError(
+        `Cette fiche pèse ${formatBytes(size)}, au-delà de la limite de 1 Mo par produit. Retirez quelques photos (produit et variantes de couleur) puis réessayez.`
+      );
+      return;
+    }
+
+    setIsSavingProduct(true);
     try {
+      const url = isEditing ? `/api/admin/inventory/${isEditing.id}` : '/api/admin/inventory';
+      const res = await fetch(url, {
+        method: isEditing ? 'PATCH' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': adminSessionPassword,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || `Enregistrement refusé par le serveur (${res.status}).`);
+      }
+
       if (isEditing) {
-        const { id, ...updates } = isEditing;
-        const res = await fetch(`/api/admin/inventory/${id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-password': adminSessionPassword,
-          },
-          body: JSON.stringify(updates),
-        });
-        if (!res.ok) throw new Error('Erreur sauvegarde');
         setIsEditing(null);
       } else {
-        const res = await fetch('/api/admin/inventory', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-password': adminSessionPassword,
-          },
-          body: JSON.stringify(newProduct),
-        });
-        if (!res.ok) throw new Error('Erreur création');
         setNewProduct({ name: '', price: '', description: '', category: 'Sac à main', colors: '', images: [] as string[], stockQuantity: 1, showFomo: false, isPublished: false, isPreOrder: false, colorVariants: [] });
       }
-    } catch (err) { console.error("Save error", err); }
+    } catch (err: any) {
+      console.error("Save error", err);
+      setProductFormError(err?.message || "Erreur lors de l'enregistrement.");
+    } finally {
+      setIsSavingProduct(false);
+    }
   };
 
   const deleteProduct = async (id: string) => {
@@ -1092,22 +1180,25 @@ export default function App() {
   };
 
   // ─── BOUTIQUES / POINTS DE VENTE ───────────────────────────────
-  const handleRetailerLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRetailerLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     setIsUploadingRetailerLogo(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
+    setRetailerFormError('');
+    try {
+      const logo = await compressImage(file, 600, TARGET_LOGO_BYTES);
       if (editingRetailer) {
-        setEditingRetailer({ ...editingRetailer, logo: base64 });
+        setEditingRetailer({ ...editingRetailer, logo });
       } else {
-        setNewRetailer({ ...newRetailer, logo: base64 });
+        setNewRetailer({ ...newRetailer, logo });
       }
+    } catch (err: any) {
+      console.error('Erreur traitement logo:', err);
+      setRetailerFormError(err?.message || "Impossible de traiter ce logo.");
+    } finally {
       setIsUploadingRetailerLogo(false);
-    };
-    reader.onerror = () => setIsUploadingRetailerLogo(false);
-    reader.readAsDataURL(file);
+    }
   };
 
   const normalizeRetailerUrl = (value: string) => {
@@ -1668,22 +1759,23 @@ export default function App() {
                                      accept="image/*"
                                      multiple
                                      className="hidden"
-                                     onChange={(e) => {
-                                       const files = Array.from(e.target.files || []);
+                                     onChange={async (e) => {
+                                       const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
+                                       e.target.value = '';
                                        if (files.length === 0) return;
-                                       Promise.all(files.map(f => new Promise<string>(resolve => {
-                                         const reader = new FileReader();
-                                         reader.onload = ev => resolve(ev.target?.result as string);
-                                         reader.readAsDataURL(f);
-                                       }))).then(newImgs => {
+                                       setProductFormError('');
+                                       try {
+                                         const newImgs = await Promise.all(files.map(f => compressImage(f)));
                                          const variants = [...((isEditing ? isEditing.colorVariants : newProduct.colorVariants) || [])];
                                          const currentImgs = getVariantImages(variants[vIdx]);
                                          variants[vIdx] = { ...variants[vIdx], images: [...currentImgs, ...newImgs] };
                                          delete variants[vIdx].image;
                                          if (isEditing) setIsEditing({ ...isEditing, colorVariants: variants });
                                          else setNewProduct({ ...newProduct, colorVariants: variants });
-                                       });
-                                       e.target.value = '';
+                                       } catch (err: any) {
+                                         console.error('Erreur traitement image variante:', err);
+                                         setProductFormError(err?.message || "Impossible de traiter cette image.");
+                                       }
                                      }}
                                    />
                                  </label>
@@ -1733,12 +1825,30 @@ export default function App() {
                      </div>
                    </div>
                  </div>
+                 {(() => {
+                   const usedBytes = estimateProductBytes(isEditing || newProduct);
+                   const pct = Math.min(100, Math.round((usedBytes / MAX_DOC_BYTES) * 100));
+                   return (
+                     <div className="pt-4 space-y-1">
+                       <div className="flex justify-between text-[9px] uppercase tracking-widest text-stone-400">
+                         <span>Poids de la fiche</span>
+                         <span className={pct >= 100 ? 'text-red-600 font-bold' : pct >= 80 ? 'text-amber-600' : ''}>{formatBytes(usedBytes)} / 0.88 Mo</span>
+                       </div>
+                       <div className="h-1 w-full bg-stone-100 overflow-hidden">
+                         <div className={`h-full transition-all ${pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-[#C5A059]'}`} style={{ width: `${pct}%` }} />
+                       </div>
+                     </div>
+                   );
+                 })()}
+                 {productFormError && (
+                   <p className="text-red-600 text-xs mt-2 leading-relaxed">{productFormError}</p>
+                 )}
                  <div className="flex gap-2 pt-4">
-                   <button type="submit" className="flex-1 bg-stone-900 text-white py-4 text-[10px] uppercase tracking-widest hover:bg-[#C5A059] transition-all">
-                     {isEditing ? 'Mettre à jour' : 'Enregistrer'}
+                   <button type="submit" disabled={isSavingProduct || isUploading} className="flex-1 bg-stone-900 text-white py-4 text-[10px] uppercase tracking-widest hover:bg-[#C5A059] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                     {isSavingProduct ? 'Enregistrement...' : isEditing ? 'Mettre à jour' : 'Enregistrer'}
                    </button>
                    {isEditing && (
-                     <button type="button" onClick={() => setIsEditing(null)} className="px-4 border border-stone-200 text-stone-400 hover:text-black">
+                     <button type="button" onClick={() => { setIsEditing(null); setProductFormError(''); }} className="px-4 border border-stone-200 text-stone-400 hover:text-black">
                        <X size={18} />
                      </button>
                    )}
