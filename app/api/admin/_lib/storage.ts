@@ -19,7 +19,10 @@ export async function uploadDataUrl(dataUrl: string, folder: string): Promise<st
   const bytes = Buffer.from(b64, 'base64');
 
   getAdminDb(); // initialise l'app Firebase Admin si nécessaire
-  const bucket = getStorage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const bucket = getStorage().bucket(
+    process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${projectId}.firebasestorage.app`
+  );
   const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 20);
   const file = bucket.file(`${folder}/${hash}.${EXT[contentType]}`);
   const token = randomUUID();

@@ -1,10 +1,11 @@
 import Shop from './_components/Shop';
 import { getAdminDb, inventoryCollection } from './api/admin/_lib/firebase';
 
-// Catalogue pré-rendu côté serveur et régénéré au plus toutes les 60 s
-// (et immédiatement après chaque modification dans l'admin via revalidatePath).
-// Les produits sont donc dans le HTML dès le premier affichage : aucun chargement.
-export const revalidate = 60;
+// Catalogue lu côté serveur à chaque visite (Firestore ne contient plus que des
+// URLs d'images : la lecture est légère). Les produits sont donc dans le HTML dès
+// le premier affichage : aucun chargement. Pas d'ISR : sur Firebase App Hosting,
+// la page d'accueil en ISR était servie en 404.
+export const dynamic = 'force-dynamic';
 
 async function getInitialProducts(): Promise<any[] | null> {
   try {

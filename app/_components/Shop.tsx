@@ -3459,7 +3459,7 @@ export default function App({ initialProducts = null }: { initialProducts?: any[
             <button className="fixed md:absolute top-6 right-6 z-[60] p-2 bg-white/90 backdrop-blur-md rounded-full shadow-md" onClick={() => setSelectedProduct(null)}><X size={20} /></button>
 
             <div
-              className="w-full md:w-3/5 bg-stone-50 sticky top-0 md:static md:h-auto md:overflow-hidden select-none flex items-center justify-center h-[78vh] md:h-auto md:p-6"
+              className="w-full md:w-3/5 bg-stone-50 sticky top-0 md:static md:h-auto md:overflow-hidden select-none flex items-center justify-center h-[56vh] md:h-auto md:p-6"
               onTouchStart={(e) => { touchStartXRef.current = e.touches[0].clientX; }}
               onTouchEnd={(e) => {
                 if (touchStartXRef.current === null || displayImages.length <= 1) return;
@@ -3626,7 +3626,9 @@ export default function App({ initialProducts = null }: { initialProducts?: any[
                 <p className="whitespace-pre-wrap italic text-stone-500 font-light leading-relaxed pt-2">{selectedProduct.description}</p>
               </div>
 
-              <div className="pt-16">
+              {/* Bouton d'achat collé au bas de la fiche : visible sans défiler */}
+              <div className="sticky bottom-0 z-20 mt-10 -mb-10 md:-mb-16 pt-4 pb-6 md:pb-10 bg-[#FDFCFB]">
+                <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-[#FDFCFB] to-transparent pointer-events-none" />
                 {selectedProduct.stockQuantity !== undefined && selectedProduct.stockQuantity <= 0 ? (
                   <button disabled className="w-full bg-stone-100 text-stone-400 border border-stone-200 py-6 text-[10px] uppercase tracking-[0.3em] font-medium cursor-not-allowed shadow-sm flex items-center justify-center gap-3">
                     <Lock size={14} /> {t.victimSuccess}
