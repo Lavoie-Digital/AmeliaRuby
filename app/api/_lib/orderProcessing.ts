@@ -1,5 +1,6 @@
 import sgMail from '@sendgrid/mail';
 import { FieldValue } from 'firebase-admin/firestore';
+import { revalidatePath } from 'next/cache';
 import { getAdminDb, inventoryCollection } from '../admin/_lib/firebase';
 import { BRAND_EMAIL, OWNER_EMAIL, SYSTEM_FROM_EMAIL } from './mail';
 
@@ -139,6 +140,8 @@ export async function processOrderOnce(data: OrderData): Promise<{ processed: bo
   } catch (invError: any) {
     console.error('❌ Erreur inventaire:', invError.message);
   }
+  // Rafraîchit le catalogue pré-rendu (stock à jour sur la page d'accueil).
+  try { revalidatePath('/'); } catch {}
 
   // --- COURRIEL DE CONFIRMATION AU CLIENT ---
   try {

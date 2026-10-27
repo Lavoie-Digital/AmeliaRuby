@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { verifyAdminHeader } from '../_lib/auth';
 import { getAdminDb, inventoryCollection } from '../_lib/firebase';
 
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
       ...body,
       createdAt: Date.now(),
     });
+    revalidatePath('/');
     return NextResponse.json({ id: ref.id });
   } catch (error: any) {
     console.error('Erreur création produit:', error);

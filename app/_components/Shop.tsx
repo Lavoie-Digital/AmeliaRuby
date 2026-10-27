@@ -167,10 +167,9 @@ const getVariantImages = (variant: any): string[] => {
   return [];
 };
 
-// Les photos sont stockées en base64 à l'intérieur du document Firestore, qui est
-// plafonné à 1 Mio. Une photo de téléphone brute (3 à 8 Mo) fait donc échouer
-// l'enregistrement : on redimensionne et recompresse dans le navigateur avant
-// de convertir en base64.
+// Les photos sont redimensionnées et recompressées dans le navigateur, puis envoyées
+// dans Firebase Storage (/api/admin/upload-image) : la fiche Firestore ne garde que
+// leur URL. La limite de 1 Mio par document reste vérifiée par sécurité.
 const MAX_DOC_BYTES = 900 * 1024;       // marge de sécurité sous la limite Firestore
 const TARGET_IMAGE_BYTES = 140 * 1024;  // budget visé par photo produit
 const TARGET_LOGO_BYTES = 60 * 1024;    // budget visé pour un logo de boutique
@@ -480,7 +479,7 @@ const translations = {
 
 type Lang = keyof typeof translations;
 
-export default function App() {
+export default function App({ initialProducts = null }: { initialProducts?: any[] | null }) {
   // États Globaux
   const [view, setView] = useState<'shop' | 'admin'>('shop');
   // Langue (FR / EN) — persistée dans localStorage
@@ -512,7 +511,7 @@ export default function App() {
   const [isCreatingPromo, setIsCreatingPromo] = useState(false);
   
   const [user, setUser] = useState<any>(null);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>(initialProducts ?? []);
   // Boutiques / points de vente (temps réel depuis Firestore)
   const [retailers, setRetailers] = useState<any[]>([]);
   const [newRetailer, setNewRetailer] = useState({ name: '', url: '', logo: '' });
@@ -523,7 +522,8 @@ export default function App() {
   const [retailerFormError, setRetailerFormError] = useState('');
   const [clients, setClients] = useState<any[]>([]);
   const [trackings, setTrackings] = useState<any[]>([]); 
-  const [isLoading, setIsLoading] = useState(true);
+  // Pas de chargement si le serveur a déjà fourni le catalogue.
+  const [isLoading, setIsLoading] = useState(initialProducts === null);
   const [squareSdkReady, setSquareSdkReady] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -656,11 +656,17 @@ export default function App() {
         } else {
           await signInAnonymously(auth);
         }
-      } catch (e) { console.error("Auth Error", e); }
+      } catch (e) {
+        console.error("Auth Error", e);
+        // Ne jamais laisser la boutique bloquée sur un chargement infini.
+        setIsLoading(false);
+      }
     };
     initAuth();
     const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
+    // Filet de sécurité : au pire, on cesse d'afficher le chargement après 4 s.
+    const safety = setTimeout(() => setIsLoading(false), 4000);
+    return () => { unsubscribe(); clearTimeout(safety); };
   }, []);
 
   // 3. FETCH DATA INVENTAIRE (lecture publique en temps réel)
@@ -1095,7 +1101,7 @@ export default function App() {
     setIsUploading(true);
     setProductFormError('');
     try {
-      const compressed = await Promise.all(fileArray.map(file => compressImage(file)));
+      const compressed = await Promise.all(fileArray.map(file => uploadImage(file)));
       if (isEditing) {
         setIsEditing({ ...isEditing, images: [...(isEditing.images || []), ...compressed] });
       } else {
@@ -1118,6 +1124,19 @@ export default function App() {
       const newImages = newProduct.images.filter((_, i) => i !== index);
       setNewProduct({ ...newProduct, images: newImages });
     }
+  };
+
+  // Compresse une photo puis l'envoie dans Firebase Storage ; retourne son URL.
+  const uploadImage = async (file: File, folder: 'products' | 'retailers' = 'products', maxDim?: number, targetBytes?: number) => {
+    const dataUrl = await compressImage(file, maxDim, targetBytes);
+    const res = await fetch('/api/admin/upload-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': adminSessionPassword },
+      body: JSON.stringify({ dataUrl, folder }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.url) throw new Error(data.error || `Envoi impossible : ${file.name}`);
+    return data.url as string;
   };
 
   const saveProduct = async (e: React.FormEvent) => {
@@ -1187,7 +1206,7 @@ export default function App() {
     setIsUploadingRetailerLogo(true);
     setRetailerFormError('');
     try {
-      const logo = await compressImage(file, 600, TARGET_LOGO_BYTES);
+      const logo = await uploadImage(file, 'retailers', 600, TARGET_LOGO_BYTES);
       if (editingRetailer) {
         setEditingRetailer({ ...editingRetailer, logo });
       } else {
@@ -1764,8 +1783,9 @@ export default function App() {
                                        e.target.value = '';
                                        if (files.length === 0) return;
                                        setProductFormError('');
+                                       setIsUploading(true);
                                        try {
-                                         const newImgs = await Promise.all(files.map(f => compressImage(f)));
+                                         const newImgs = await Promise.all(files.map(f => uploadImage(f)));
                                          const variants = [...((isEditing ? isEditing.colorVariants : newProduct.colorVariants) || [])];
                                          const currentImgs = getVariantImages(variants[vIdx]);
                                          variants[vIdx] = { ...variants[vIdx], images: [...currentImgs, ...newImgs] };
@@ -1775,6 +1795,8 @@ export default function App() {
                                        } catch (err: any) {
                                          console.error('Erreur traitement image variante:', err);
                                          setProductFormError(err?.message || "Impossible de traiter cette image.");
+                                       } finally {
+                                         setIsUploading(false);
                                        }
                                      }}
                                    />
@@ -2471,7 +2493,7 @@ export default function App() {
                   <div className="flex gap-3 pt-2">
                     <button
                       type="submit"
-                      disabled={isSavingRetailer}
+                      disabled={isSavingRetailer || isUploadingRetailerLogo}
                       className="flex-1 bg-stone-900 text-white py-3 text-[10px] uppercase tracking-widest hover:bg-[#C5A059] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       {isSavingRetailer && <Loader2 size={14} className="animate-spin"/>}
@@ -3102,7 +3124,7 @@ export default function App() {
               .map((p, i) => {
               const isSoldOut = p.stockQuantity !== undefined && p.stockQuantity <= 0;
               return (
-              <Reveal key={p.id} delay={i * 100}>
+              <Reveal key={p.id} delay={(i % 3) * 80}>
                 <TiltCard>
                 <div className="group" onClick={() => openProductModal(p)}>
                   <div className="relative aspect-[4/5] overflow-hidden bg-stone-50 mb-3 md:mb-8 shadow-sm rounded-sm">

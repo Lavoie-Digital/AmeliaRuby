@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { verifyAdminHeader } from '../../_lib/auth';
 import { getAdminDb, inventoryCollection } from '../../_lib/firebase';
 
@@ -27,6 +28,7 @@ export async function PATCH(
   try {
     const db = getAdminDb();
     await inventoryCollection(db).doc(id).update(updates);
+    revalidatePath('/');
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error('Erreur mise à jour produit:', error);
@@ -47,6 +49,7 @@ export async function DELETE(
   try {
     const db = getAdminDb();
     await inventoryCollection(db).doc(id).delete();
+    revalidatePath('/');
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error('Erreur suppression produit:', error);
